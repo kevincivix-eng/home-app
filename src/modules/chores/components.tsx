@@ -5,7 +5,7 @@ import { CheckIcon } from '../../ui/icons'
 import { Sheet } from '../../ui/Sheet'
 import { useToast } from '../../ui/Toast'
 import { CATEGORIES } from './defaults'
-import { daysLate, deadlineOf, isOverdue } from './schedule'
+import { addPeriod, daysLate, deadlineOf, isOverdue } from './schedule'
 import { useChores } from './store'
 import { FREQ_LABEL, FREQUENCIES, type Completion, type Frequency, type Task } from './types'
 
@@ -19,16 +19,18 @@ export function dueText(t: Task, today: Day): ReactNode {
 
 /** Complete a task and offer undo */
 export function useCompleteTask() {
-  const { complete, undo, profileById } = useChores()
+  const { complete, undo, profileById, today } = useChores()
   const toast = useToast()
   return async (t: Task, doneBy?: string) => {
     const c = await complete(t, doneBy)
     const who = profileById(c.done_by)?.name
-    toast({ text: `✓ ${t.title}${who ? ` · ${who}` : ''}`, action: { label: 'ביטול', run: () => undo(c) } })
+    const next = relativeDay(addPeriod(today, t.frequency), today)
+    toast({ text: `✓ ${t.title}${who ? ` · ${who}` : ''} · חוזרת ${next}`, action: { label: 'ביטול', run: () => undo(c) } })
   }
 }
 
-export function TaskRow({ task, onOpen, extra, lead }: { task: Task; onOpen: () => void; extra?: ReactNode; lead?: ReactNode }) {
+/** `early`: also show the checkbox on a future task, to complete it ahead of time */
+export function TaskRow({ task, onOpen, extra, lead, early }: { task: Task; onOpen: () => void; extra?: ReactNode; lead?: ReactNode; early?: boolean }) {
   const { today } = useChores()
   const completeTask = useCompleteTask()
   const [checking, setChecking] = useState(false)
@@ -37,10 +39,10 @@ export function TaskRow({ task, onOpen, extra, lead }: { task: Task; onOpen: () 
   return (
     <div className={`cell${overdue ? ' overdue' : ''}`}>
       {lead}
-      {open && (
+      {(open || early) && (
         <button
           className={`check${checking ? ' on' : ''}`}
-          aria-label={`סמן "${task.title}" כבוצע`}
+          aria-label={`סמן "${task.title}" כבוצע${open ? '' : ' (מוקדם)'}`}
           onClick={() => { setChecking(true); setTimeout(() => completeTask(task), 180) }}
         >
           {checking && <CheckIcon />}
@@ -59,8 +61,9 @@ export function TaskRow({ task, onOpen, extra, lead }: { task: Task; onOpen: () 
   )
 }
 
-export function DoneRow({ c, title }: { c: Completion; title: string }) {
-  const { undo, profileById, completions } = useChores()
+/** A completion. With `task`, also shows when it comes back and opens the task's actions on tap */
+export function DoneRow({ c, title, task, onOpen }: { c: Completion; title: string; task?: Task; onOpen?: () => void }) {
+  const { undo, profileById, completions, today } = useChores()
   const latest = completions.filter(x => x.task_id === c.task_id).at(-1)?.id === c.id
   const doneBy = profileById(c.done_by)
   const markedBy = profileById(c.marked_by)
@@ -69,13 +72,15 @@ export function DoneRow({ c, title }: { c: Completion; title: string }) {
       <button className="check on" disabled={!latest} aria-label="בטל סימון" onClick={() => latest && undo(c)}>
         <CheckIcon />
       </button>
-      <div className="cell-body">
+      <button className="cell-body" onClick={onOpen} disabled={!onOpen} style={{ textAlign: 'start', color: 'inherit' }}>
         <div className="cell-title">{title}</div>
         <div className="cell-sub">
           {doneBy?.name}{c.marked_by !== c.done_by && markedBy ? ` (סומן ע״י ${markedBy.name})` : ''}
+          {task && ` · ${relativeDay(c.completed_on, today)}`}
           {!c.on_time && <span className="pill" style={{ color: 'var(--red)' }}>באיחור {daysText(c.days_late)}</span>}
         </div>
-      </div>
+        {task && <div className="cell-sub">חוזרת {relativeDay(task.due_date, today)}</div>}
+      </button>
       <Avatar p={doneBy} />
     </div>
   )
@@ -97,16 +102,16 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
     <Sheet open onClose={onClose}>
       <div className="sheet-title">{task.title}</div>
       <div className="sheet-sub">{FREQ_LABEL[task.frequency]} · {task.category} · {open ? dueText(task, today) : `מופיעה ב-${shortDate(task.due_date)}`}</div>
-      {open && (
-        <div className="action-group">
-          {profiles.map(p => (
-            <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
-              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> בוצע ע״י {p.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
       <div className="action-group">
+        {profiles.map(p => (
+          <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
+            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
+          </button>
+        ))}
+      </div>
+      {!open && <div className="section-footer" style={{ margin: '-2px 16px 10px' }}>סימון מוקדם מאפס את הספירה – הפעם הבאה תיקבע מהיום.</div>}
+      <div className="action-group">
+        {!open && <button className="action" onClick={() => move(today)}>הקדם להיום</button>}
         <button className="action" onClick={() => move(plusDays(task.due_date > today ? task.due_date : today, 1))}>
           {task.due_date > today ? 'דחה ביום' : 'דחה למחר'}
         </button>

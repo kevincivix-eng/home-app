@@ -36,6 +36,10 @@ describe('completeOn', () => {
     const r = completeOn(task('2026-10-25', 'weekly'), '2026-10-28')
     expect(r).toMatchObject({ on_time: true, days_late: 0, deadline: '2026-11-01', next_due: '2026-11-04' })
   })
+  it('early completion is on time and resets the next round from today', () => {
+    const r = completeOn(task('2026-11-10', 'monthly'), '2026-10-25')
+    expect(r).toMatchObject({ on_time: true, days_late: 0, appeared_on: '2026-11-10', next_due: '2026-11-25' })
+  })
   it('late completion counts days late', () => {
     expect(daysLate(task('2026-10-25'), '2026-10-26')).toBe(1)
     const r = completeOn(task('2026-10-25', 'weekly'), '2026-11-03')
