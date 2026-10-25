@@ -29,4 +29,13 @@ export function relativeDay(d: Day, ref: Day = today()): string {
   return `לפני ${daysText(-n)}`
 }
 
+/** For "עד …": "היום", "מחר", "יום שישי", "24/11" */
+export function untilDay(d: Day, ref: Day = today()): string {
+  const n = diffDays(d, ref)
+  if (n === 0) return 'היום'
+  if (n === 1) return 'מחר'
+  if (n > 1 && n < 7) return `יום ${weekdayName(d)}`
+  return shortDate(d)
+}
+
 export const daysText = (n: number) => (n === 1 ? 'יום' : n === 2 ? 'יומיים' : `${n} ימים`)

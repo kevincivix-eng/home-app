@@ -12,7 +12,7 @@ import { CalendarTab, SettingsTab, StatsTab, TodayTab } from './ui/icons'
 import { ToastProvider } from './ui/Toast'
 
 /** Future modules (shopping list, ...) get their own tab here */
-const TABS: { id: string; label: string; icon: () => ReactNode; screen: () => ReactNode }[] = [
+const TABS: { id: string; label: string; icon: (p: { on?: boolean }) => ReactNode; screen: () => ReactNode }[] = [
   { id: 'today', label: 'היום', icon: TodayTab, screen: TodayScreen },
   { id: 'calendar', label: 'לוח', icon: CalendarTab, screen: CalendarScreen },
   { id: 'stats', label: 'סטטיסטיקה', icon: StatsTab, screen: StatsScreen },
@@ -35,7 +35,7 @@ function Shell() {
       <nav className="tabbar">
         {TABS.map(t => (
           <button key={t.id} className={`tab${t.id === tab ? ' active' : ''}`} onClick={() => go(t.id)}>
-            {t.icon()}
+            {t.icon({ on: t.id === tab })}
             {t.id === 'today' && overdue > 0 && <span className="badge-dot">{overdue}</span>}
             {t.label}
           </button>

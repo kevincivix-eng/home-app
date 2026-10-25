@@ -3,6 +3,7 @@ import { useAuth } from '../../lib/auth'
 import { relativeDay } from '../../lib/dates'
 import { HouseholdSettings } from '../../HouseholdSettings'
 import { ChevIcon, PlusIcon } from '../../ui/icons'
+import { GlassButton, Page } from '../../ui/Page'
 import { DEMO_PROFILES, isDemo } from './backend'
 import { TaskEditor } from './components'
 import { DEFAULT_TASKS } from './defaults'
@@ -19,11 +20,7 @@ export function SettingsScreen() {
   const missingDefaults = DEFAULT_TASKS.filter(d => !tasks.some(t => t.title === d.title)).length
 
   return (
-    <div className="screen">
-      <div className="header-row">
-        <h1 className="large-title">הגדרות</h1>
-        <button className="icon-btn" aria-label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></button>
-      </div>
+    <Page title="הגדרות" actions={<GlassButton label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></GlassButton>}>
 
       {isDemo && (
         <div className="banner">
@@ -80,6 +77,6 @@ export function SettingsScreen() {
       )}
 
       <TaskEditor task={editing} onClose={() => setEditing(null)} />
-    </div>
+    </Page>
   )
 }

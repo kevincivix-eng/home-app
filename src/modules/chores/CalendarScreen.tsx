@@ -5,6 +5,7 @@ import {
 import { useMemo, useState } from 'react'
 import { fromDay, longDate, MONTHS, plusDays, toDay, type Day } from '../../lib/dates'
 import { ArrowIcon, GripIcon } from '../../ui/icons'
+import { Page } from '../../ui/Page'
 import { useToast } from '../../ui/Toast'
 import { DoneRow, TaskActions, TaskEditor, TaskRow } from './components'
 import { isOverdue } from './schedule'
@@ -61,9 +62,7 @@ export function CalendarScreen() {
   const shift = (n: number) => setCursor(({ y, m }) => { const d = new Date(y, m + n, 1); return { y: d.getFullYear(), m: d.getMonth() } })
 
   return (
-    <div className="screen">
-      <h1 className="large-title">לוח</h1>
-      <div className="subtitle">גררו משימה ליום אחר כדי להזיז אותה</div>
+    <Page title="לוח" subtitle="גררו משימה ליום אחר כדי להזיז אותה">
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="cal">
@@ -108,13 +107,13 @@ export function CalendarScreen() {
         )}
 
         <DragOverlay dropAnimation={null}>
-          {dragging && <div className="drag-overlay"><GripIcon />{dragging.title}</div>}
+          {dragging && <div className="drag-overlay glass"><GripIcon />{dragging.title}</div>}
         </DragOverlay>
       </DndContext>
 
       <TaskActions task={actionTask} onClose={() => setActionTask(null)} onEdit={setEditing} />
       <TaskEditor task={editing} onClose={() => setEditing(null)} />
-    </div>
+    </Page>
   )
 }
 

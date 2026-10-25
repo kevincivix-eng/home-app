@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "home-app", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5173"], "port": 5173 }
+    { "name": "home-app", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5173"], "port": 5173 },
+    { "name": "home-app-demo", "runtimeExecutable": "sh", "runtimeArgs": ["-c", "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vite --port 5174"], "port": 5174 }
   ]
 }

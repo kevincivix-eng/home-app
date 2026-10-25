@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { longDate } from '../../lib/dates'
 import { PlusIcon } from '../../ui/icons'
+import { GlassButton, Page } from '../../ui/Page'
 import { DoneRow, TaskActions, TaskEditor, TaskRow } from './components'
 import { daysLate, isOpen, isOverdue } from './schedule'
 import { useChores } from './store'
@@ -27,14 +28,11 @@ export function TodayScreen() {
   const future = waiting.filter(t => !lastCompletion.has(t.id)).sort((a, b) => a.due_date.localeCompare(b.due_date))
 
   return (
-    <div className="screen">
-      <div className="header-row">
-        <div>
-          <h1 className="large-title">היום</h1>
-          <div className="subtitle">{longDate(today)}{open.length > 0 && ` · ${open.length} פתוחות`}</div>
-        </div>
-        <button className="icon-btn" aria-label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></button>
-      </div>
+    <Page
+      title="היום"
+      subtitle={<>{longDate(today)}{open.length > 0 && ` · ${open.length} פתוחות`}</>}
+      actions={<GlassButton label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></GlassButton>}
+    >
 
       {!loading && tasks.length === 0 && (
         <div className="empty">
@@ -58,7 +56,7 @@ export function TodayScreen() {
         return (
           <div className="section" key={f}>
             <div className="section-header big">{FREQ_LABEL[f]} <span className="count">{list.length}</span></div>
-            <div className="list">{list.map(t => <TaskRow key={t.id} task={t} onOpen={() => setSelected(t)} />)}</div>
+            <div className="list">{list.map(t => <TaskRow key={t.id} task={t} showFreq={false} onOpen={() => setSelected(t)} />)}</div>
           </div>
         )
       })}
@@ -100,6 +98,6 @@ export function TodayScreen() {
 
       <TaskActions task={selected} onClose={() => setSelected(null)} onEdit={setEditing} />
       <TaskEditor task={editing} onClose={() => setEditing(null)} />
-    </div>
+    </Page>
   )
 }

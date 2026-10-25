@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { daysText, shortDate } from '../../lib/dates'
 import { Avatar } from '../../ui/Avatar'
 import { ChevIcon } from '../../ui/icons'
+import { Page } from '../../ui/Page'
 import { Sheet } from '../../ui/Sheet'
 import { computeStats, pct, rangeStart, rateClass, sum, type TaskStats } from './stats'
 import { useChores } from './store'
@@ -23,15 +24,14 @@ export function StatsScreen() {
   const s = useMemo(() => computeStats(store, from, today), [store, from, today])
 
   return (
-    <div className="screen">
-      <h1 className="large-title">סטטיסטיקה</h1>
-      <div className="seg" style={{ marginBottom: 16 }}>
+    <Page title="סטטיסטיקה">
+      <div className="seg" style={{ marginBottom: 20 }}>
         {RANGES.map((r, i) => <button key={r.label} className={i === range ? 'on' : ''} onClick={() => setRange(i)}>{r.label}</button>)}
       </div>
 
       <div className="kpis">
         <div className="kpi"><div className="v">{s.total}</div><div className="l">משימות בוצעו</div></div>
-        <div className="kpi"><div className={`v rate ${rateClass(s.rate)}`} style={{ textAlign: 'start', fontSize: 26 }}>{pct(s.rate)}</div><div className="l">בוצעו בזמן</div></div>
+        <div className="kpi"><div className={`v rate ${rateClass(s.rate)}`} style={{ textAlign: 'start' }}>{pct(s.rate)}</div><div className="l">בוצעו בזמן</div></div>
         <div className="kpi"><div className="v" style={{ color: s.overdueNow ? 'var(--red)' : undefined }}>{s.overdueNow}</div><div className="l">באיחור כרגע</div></div>
       </div>
 
@@ -89,7 +89,7 @@ export function StatsScreen() {
       })}
 
       <TaskHistory s={detail} onClose={() => setDetail(null)} from={from} />
-    </div>
+    </Page>
   )
 }
 

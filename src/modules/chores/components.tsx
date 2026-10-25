@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { daysText, plusDays, relativeDay, shortDate, type Day } from '../../lib/dates'
+import { daysText, plusDays, relativeDay, shortDate, untilDay, type Day } from '../../lib/dates'
 import { Avatar } from '../../ui/Avatar'
 import { CheckIcon } from '../../ui/icons'
 import { Sheet } from '../../ui/Sheet'
@@ -14,7 +14,7 @@ export function dueText(t: Task, today: Day): ReactNode {
   if (t.due_date > today) return `מופיעה ${relativeDay(t.due_date, today)}`
   if (isOverdue(t, today)) return <span className="late">באיחור {daysText(daysLate(t, today))}</span>
   const lastDay = plusDays(deadlineOf(t), -1)
-  return `עד ${relativeDay(lastDay, today)}`
+  return `עד ${untilDay(lastDay, today)}`
 }
 
 /** Complete a task and offer undo */
@@ -30,7 +30,7 @@ export function useCompleteTask() {
 }
 
 /** `early`: also show the checkbox on a future task, to complete it ahead of time */
-export function TaskRow({ task, onOpen, extra, lead, early }: { task: Task; onOpen: () => void; extra?: ReactNode; lead?: ReactNode; early?: boolean }) {
+export function TaskRow({ task, onOpen, extra, lead, early, showFreq = true }: { task: Task; onOpen: () => void; extra?: ReactNode; lead?: ReactNode; early?: boolean; showFreq?: boolean }) {
   const { today } = useChores()
   const completeTask = useCompleteTask()
   const [checking, setChecking] = useState(false)
@@ -52,7 +52,7 @@ export function TaskRow({ task, onOpen, extra, lead, early }: { task: Task; onOp
         <div className="cell-title">{task.title}</div>
         <div className="cell-sub">
           {dueText(task, today)}
-          <span className="pill">{FREQ_LABEL[task.frequency]}</span>
+          {showFreq && <span className="pill">{FREQ_LABEL[task.frequency]}</span>}
           {task.category !== 'כללי' && <span className="pill">{task.category}</span>}
         </div>
       </button>
