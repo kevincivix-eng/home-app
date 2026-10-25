@@ -2,7 +2,7 @@ import type { Frequency } from './types'
 
 export const CATEGORIES = ['כללי', 'מטבח', 'כביסה', 'ניקיון', 'רכב', 'פנצ׳ו', 'תינוק', 'מכשירים'] as const
 
-const d = (title: string, frequency: Frequency, category: string) => ({ title, frequency, category })
+const d = (title: string, frequency: Frequency, category: string) => ({ title, frequency, category, owner_id: null })
 
 export const DEFAULT_TASKS = [
   d('לסדר מיטה', 'daily', 'כללי'),

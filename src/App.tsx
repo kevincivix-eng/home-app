@@ -20,13 +20,13 @@ const TABS: { id: string; label: string; icon: (p: { on?: boolean }) => ReactNod
 ]
 
 function Shell() {
-  const { tasks, today, loading, error } = useChores()
+  const { tasks, today, loading, error, me } = useChores()
   const [tab, setTab] = useState(() => { try { return sessionStorage.getItem('tab') ?? 'today' } catch { return 'today' } })
   const go = (id: string) => { setTab(id); try { sessionStorage.setItem('tab', id) } catch { /* ignore */ } }
 
   if (loading) return null
 
-  const overdue = tasks.filter(t => isOverdue(t, today)).length
+  const overdue = tasks.filter(t => (!t.owner_id || t.owner_id === me?.id) && isOverdue(t, today)).length
   const Screen = TABS.find(t => t.id === tab)!.screen
   return (
     <div className="app">

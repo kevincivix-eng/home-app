@@ -21,7 +21,7 @@ interface Store extends ChoresData {
   complete(task: Task, doneBy?: string): Promise<Completion>
   undo(c: Completion): Promise<void>
   moveTask(task: Task, to: Day): Promise<void>
-  addTask(t: { title: string; frequency: Frequency; category: string; due_date?: Day }): Promise<void>
+  addTask(t: { title: string; frequency: Frequency; category: string; owner_id: string | null; due_date?: Day }): Promise<void>
   updateTask(id: string, patch: Partial<Task>): Promise<void>
   deleteTask(id: string): Promise<void>
   loadDefaults(): Promise<void>
@@ -80,17 +80,19 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
         completed_at: new Date().toISOString(),
         done_by: doneBy, marked_by: userId!, on_time: r.on_time, days_late: r.days_late,
       }
+      // Recurring → schedule the next round; one-time → done for good
+      const patch: Partial<Task> = r.next_due ? { due_date: r.next_due } : { active: false }
       await mutate(
-        d => ({ ...d, completions: [...d.completions, c], tasks: d.tasks.map(t => (t.id === task.id ? { ...t, due_date: r.next_due } : t)) }),
-        async () => { await backend.addCompletion(c); await backend.updateTask(task.id, { due_date: r.next_due }) },
+        d => ({ ...d, completions: [...d.completions, c], tasks: d.tasks.map(t => (t.id === task.id ? { ...t, ...patch } : t)) }),
+        async () => { await backend.addCompletion(c); await backend.updateTask(task.id, patch) },
       )
       return c
     },
 
     async undo(c) {
       await mutate(
-        d => ({ ...d, completions: d.completions.filter(x => x.id !== c.id), tasks: d.tasks.map(t => (t.id === c.task_id ? { ...t, due_date: c.appeared_on } : t)) }),
-        async () => { await backend.deleteCompletion(c.id); await backend.updateTask(c.task_id, { due_date: c.appeared_on }) },
+        d => ({ ...d, completions: d.completions.filter(x => x.id !== c.id), tasks: d.tasks.map(t => (t.id === c.task_id ? { ...t, due_date: c.appeared_on, active: true } : t)) }),
+        async () => { await backend.deleteCompletion(c.id); await backend.updateTask(c.task_id, { due_date: c.appeared_on, active: true }) },
       )
     },
 

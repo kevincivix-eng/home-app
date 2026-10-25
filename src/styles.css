@@ -332,3 +332,11 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 }
 .cal-nav .icon-btn { background: none; color: var(--tint-text); width: 32px; height: 32px; }
 .cal-nav .icon-btn svg { width: 20px; height: 20px; }
+.seg-tight button { font-size: 14px; padding-inline: 2px; }
+.pill.personal { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
+.disclosure { display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px 4px 10px; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: 0.35px; text-align: start; }
+.disclosure-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disclosure .count { font-size: 15px; font-weight: 400; color: var(--text-2); white-space: nowrap; letter-spacing: -0.24px; }
+.disclosure svg { width: 9px; height: 15px; color: var(--tint-text); transition: transform .2s; transform: scaleX(-1); }
+.disclosure.open svg { transform: rotate(90deg); }
+.member-head { display: flex; align-items: center; gap: 8px; margin: 14px 20px 8px; font-size: 15px; color: var(--text-2); }

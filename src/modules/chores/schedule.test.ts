@@ -47,6 +47,16 @@ describe('completeOn', () => {
   })
 })
 
+describe('one-time tasks', () => {
+  it('turn red the day after their date and never come back', () => {
+    const t = task('2026-10-25', 'once')
+    expect(isOverdue(t, '2026-10-25')).toBe(false)
+    expect(isOverdue(t, '2026-10-26')).toBe(true)
+    expect(completeOn(t, '2026-10-27')).toMatchObject({ on_time: false, days_late: 2, next_due: null })
+    expect(pickStartDate('once', [task('2026-10-25')], '2026-10-25')).toBe('2026-10-25')
+  })
+})
+
 describe('spreading', () => {
   it('spreads each frequency over its period', () => {
     const tasks = [

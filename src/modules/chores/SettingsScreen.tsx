@@ -7,6 +7,7 @@ import { GlassButton, Page } from '../../ui/Page'
 import { DEMO_PROFILES, isDemo } from './backend'
 import { TaskEditor } from './components'
 import { DEFAULT_TASKS } from './defaults'
+import { isDoneForGood } from './schedule'
 import { useChores } from './store'
 import { FREQ_LABEL, FREQUENCIES, type Task } from './types'
 
@@ -14,7 +15,7 @@ const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 
 export function SettingsScreen() {
-  const { tasks, today, loadDefaults } = useChores()
+  const { tasks, today, loadDefaults, profileById, me } = useChores()
   const { setDemoUser, userId } = useAuth()
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
   const missingDefaults = DEFAULT_TASKS.filter(d => !tasks.some(t => t.title === d.title)).length
@@ -52,7 +53,8 @@ export function SettingsScreen() {
       )}
 
       {FREQUENCIES.map(f => {
-        const list = tasks.filter(t => t.frequency === f).sort((a, b) => a.title.localeCompare(b.title, 'he'))
+        // completed one-time tasks are history, not something to manage
+        const list = tasks.filter(t => t.frequency === f && !isDoneForGood(t)).sort((a, b) => a.title.localeCompare(b.title, 'he'))
         if (!list.length) return null
         return (
           <div className="section" key={f}>
@@ -62,7 +64,7 @@ export function SettingsScreen() {
                 <button key={t.id} className="cell plain" onClick={() => setEditing(t)} style={{ opacity: t.active ? 1 : 0.45 }}>
                   <div className="cell-body">
                     <div className="cell-title">{t.title}</div>
-                    <div className="cell-sub">{t.category}{t.active ? ` · מופיעה ${relativeDay(t.due_date, today)}` : ' · מושהית'}</div>
+                    <div className="cell-sub">{t.owner_id ? `${t.owner_id === me?.id ? 'אישית שלי' : `של ${profileById(t.owner_id)?.name ?? ''}`} · ` : ''}{t.category}{t.active ? ` · מופיעה ${relativeDay(t.due_date, today)}` : ' · מושהית'}</div>
                   </div>
                   <ChevIcon />
                 </button>

@@ -3,7 +3,7 @@
 -- WARNING: drops the existing app tables (safe while they are still empty).
 
 drop table if exists task_events, completions, tasks, household_members, households, profiles cascade;
-drop function if exists is_member, is_owner, create_household, join_household, regenerate_invite, gen_invite_code cascade;
+drop function if exists is_member, is_owner, create_household, join_household, regenerate_invite, gen_invite_code, check_task_owner cascade;
 
 -- ── People ────────────────────────────────────────────────────────────────
 create table profiles (
@@ -52,13 +52,24 @@ create table tasks (
   id uuid primary key default gen_random_uuid(),
   household_id uuid not null references households on delete cascade,
   title text not null,
-  frequency text not null check (frequency in ('daily', 'weekly', 'monthly', 'quarterly')),
+  frequency text not null constraint tasks_frequency_check check (frequency in ('once', 'daily', 'weekly', 'monthly', 'quarterly')),
+  owner_id uuid references profiles on delete cascade,  -- null = shared; otherwise a personal task
   category text not null default 'כללי',
   due_date date not null,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
 create index tasks_household_idx on tasks (household_id);
+
+create or replace function check_task_owner() returns trigger language plpgsql as $$
+begin
+  if new.owner_id is not null and not exists (
+    select 1 from household_members where household_id = new.household_id and user_id = new.owner_id
+  ) then raise exception 'owner is not a member of this household'; end if;
+  return new;
+end $$;
+create trigger tasks_owner_check before insert or update of owner_id, household_id on tasks
+  for each row execute function check_task_owner();
 
 create table completions (
   id uuid primary key default gen_random_uuid(),

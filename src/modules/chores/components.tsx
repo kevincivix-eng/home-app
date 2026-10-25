@@ -24,8 +24,8 @@ export function useCompleteTask() {
   return async (t: Task, doneBy?: string) => {
     const c = await complete(t, doneBy)
     const who = profileById(c.done_by)?.name
-    const next = relativeDay(addPeriod(today, t.frequency), today)
-    toast({ text: `✓ ${t.title}${who ? ` · ${who}` : ''} · חוזרת ${next}`, action: { label: 'ביטול', run: () => undo(c) } })
+    const next = t.frequency === 'once' ? '' : ` · חוזרת ${relativeDay(addPeriod(today, t.frequency), today)}`
+    toast({ text: `✓ ${t.title}${who ? ` · ${who}` : ''}${next}`, action: { label: 'ביטול', run: () => undo(c) } })
   }
 }
 
@@ -53,6 +53,7 @@ export function TaskRow({ task, onOpen, extra, lead, early, showFreq = true }: {
         <div className="cell-sub">
           {dueText(task, today)}
           {showFreq && <span className="pill">{FREQ_LABEL[task.frequency]}</span>}
+          {task.owner_id && <OwnerPill id={task.owner_id} />}
           {task.category !== 'כללי' && <span className="pill">{task.category}</span>}
         </div>
       </button>
@@ -62,6 +63,15 @@ export function TaskRow({ task, onOpen, extra, lead, early, showFreq = true }: {
 }
 
 /** A completion. With `task`, also shows when it comes back and opens the task's actions on tap */
+/** "אישי" for my own personal task, the owner's name for someone else's */
+function OwnerPill({ id }: { id: string }) {
+  const { me, profileById } = useChores()
+  const p = profileById(id)
+  return id === me?.id
+    ? <span className="pill personal">אישי</span>
+    : <span className="pill personal" style={p ? { background: `color-mix(in srgb, ${p.color} 16%, transparent)`, color: p.color } : undefined}>{p?.name ?? 'אישי'}</span>
+}
+
 export function DoneRow({ c, title, task, onOpen }: { c: Completion; title: string; task?: Task; onOpen?: () => void }) {
   const { undo, profileById, completions, today } = useChores()
   const latest = completions.filter(x => x.task_id === c.task_id).at(-1)?.id === c.id
@@ -79,7 +89,7 @@ export function DoneRow({ c, title, task, onOpen }: { c: Completion; title: stri
           {task && ` · ${relativeDay(c.completed_on, today)}`}
           {!c.on_time && <span className="pill" style={{ color: 'var(--red)' }}>באיחור {daysText(c.days_late)}</span>}
         </div>
-        {task && <div className="cell-sub">חוזרת {relativeDay(task.due_date, today)}</div>}
+        {task && <div className="cell-sub">{task.frequency === 'once' ? 'חד פעמית – הושלמה' : `חוזרת ${relativeDay(task.due_date, today)}`}</div>}
       </button>
       <Avatar p={doneBy} />
     </div>
@@ -105,11 +115,11 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
       <div className="action-group">
         {profiles.map(p => (
           <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
-            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
+            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open || task.frequency === 'once' ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
           </button>
         ))}
       </div>
-      {!open && <div className="section-footer" style={{ margin: '-2px 16px 10px' }}>סימון מוקדם מאפס את הספירה – הפעם הבאה תיקבע מהיום.</div>}
+      {!open && task.frequency !== 'once' && <div className="section-footer" style={{ margin: '-2px 16px 10px' }}>סימון מוקדם מאפס את הספירה – הפעם הבאה תיקבע מהיום.</div>}
       <div className="action-group">
         {!open && <button className="action" onClick={() => move(today)}>הקדם להיום</button>}
         <button className="action" onClick={() => move(plusDays(task.due_date > today ? task.due_date : today, 1))}>
@@ -144,8 +154,10 @@ export function TaskEditor({ task, onClose }: { task: Task | 'new' | null; onClo
 }
 
 function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void }) {
-  const { addTask, updateTask, deleteTask, today } = useChores()
+  const { addTask, updateTask, deleteTask, today, me, profileById } = useChores()
   const isNew = task === 'new'
+  const [owner, setOwner] = useState<string | null>(isNew ? null : task.owner_id ?? null)
+  const otherOwner = !isNew && task.owner_id && task.owner_id !== me?.id ? profileById(task.owner_id) : undefined
   const [title, setTitle] = useState(isNew ? '' : task.title)
   const [frequency, setFrequency] = useState<Frequency>(isNew ? 'weekly' : task.frequency)
   const [category, setCategory] = useState(isNew ? 'כללי' : task.category)
@@ -153,7 +165,7 @@ function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const save = async () => {
-    const t = { title: title.trim(), frequency, category }
+    const t = { title: title.trim(), frequency, category, owner_id: owner }
     if (isNew) await addTask({ ...t, due_date: date || undefined })
     else await updateTask(task.id, { ...t, due_date: date || task.due_date })
     onClose()
@@ -174,8 +186,18 @@ function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void
       </div>
 
       <div className="section">
-        <div className="section-header">תדירות</div>
+        <div className="section-header">של מי</div>
         <div className="seg">
+          <button className={owner === null ? 'on' : ''} onClick={() => setOwner(null)}>משותפת לבית</button>
+          {otherOwner && <button className={owner === otherOwner.id ? 'on' : ''} onClick={() => setOwner(otherOwner.id)}>אישית של {otherOwner.name}</button>}
+          {me && <button className={owner === me.id ? 'on' : ''} onClick={() => setOwner(me.id)}>אישית שלי</button>}
+        </div>
+        {owner && <div className="section-footer">משימה אישית מופיעה רק לך במסך הראשי. בני הבית יכולים לראות אותה בקטע סגור בתחתית.</div>}
+      </div>
+
+      <div className="section">
+        <div className="section-header">תדירות</div>
+        <div className="seg seg-tight">
           {FREQUENCIES.map(f => (
             <button key={f} className={f === frequency ? 'on' : ''} onClick={() => setFrequency(f)}>{FREQ_LABEL[f]}</button>
           ))}
@@ -194,11 +216,13 @@ function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void
       <div className="section">
         <div className="list">
           <div className="field">
-            <label>{isNew ? 'מתחילה ב' : 'מופיעה ב'}</label>
+            <label>{frequency === 'once' ? 'בתאריך' : isNew ? 'מתחילה ב' : 'מופיעה ב'}</label>
             <input type="date" value={date} min={isNew ? today : undefined} onChange={e => setDate(e.target.value)} />
           </div>
         </div>
-        {isNew && <div className="section-footer">{date ? '' : 'אם לא נבחר תאריך – המשימה תשובץ אוטומטית ליום הכי פנוי.'}</div>}
+        {isNew && !date && (
+          <div className="section-footer">{frequency === 'once' ? 'בלי תאריך – המשימה תופיע כבר היום.' : 'אם לא נבחר תאריך – המשימה תשובץ אוטומטית ליום הכי פנוי.'}</div>
+        )}
       </div>
 
       {!isNew && (

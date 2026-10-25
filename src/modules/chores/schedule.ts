@@ -4,6 +4,7 @@ import type { Frequency, Task } from './types'
 /** Adds one period of the given frequency. Months are calendar months (Jan 31 → Feb 28). */
 export function addPeriod(d: Day, freq: Frequency): Day {
   switch (freq) {
+    case 'once':
     case 'daily': return plusDays(d, 1)
     case 'weekly': return plusDays(d, 7)
     case 'monthly': return plusMonths(d, 1)
@@ -12,7 +13,7 @@ export function addPeriod(d: Day, freq: Frequency): Day {
 }
 
 /** Approximate length in days, used for spreading tasks over a period */
-export const SPAN_DAYS: Record<Frequency, number> = { daily: 1, weekly: 7, monthly: 30, quarterly: 90 }
+export const SPAN_DAYS: Record<Frequency, number> = { once: 1, daily: 1, weekly: 7, monthly: 30, quarterly: 90 }
 
 /** The task turns red on this day if still not done */
 export const deadlineOf = (t: Pick<Task, 'due_date' | 'frequency'>): Day => addPeriod(t.due_date, t.frequency)
@@ -28,7 +29,10 @@ export function daysLate(t: Pick<Task, 'due_date' | 'frequency'>, day: Day): num
   return n >= 0 ? n + 1 : 0
 }
 
-/** Computes what completing a task on `day` means: the completion record and the next due date */
+/** One-time tasks are done for good once completed (they become inactive) */
+export const isDoneForGood = (t: Pick<Task, 'frequency' | 'active'>) => t.frequency === 'once' && !t.active
+
+/** Computes what completing a task on `day` means: the completion record and the next due date (null = never again) */
 export function completeOn(t: Pick<Task, 'due_date' | 'frequency'>, day: Day) {
   const late = daysLate(t, day)
   return {
@@ -37,7 +41,7 @@ export function completeOn(t: Pick<Task, 'due_date' | 'frequency'>, day: Day) {
     completed_on: day,
     on_time: late === 0,
     days_late: late,
-    next_due: addPeriod(day, t.frequency),
+    next_due: t.frequency === 'once' ? null : addPeriod(day, t.frequency),
   }
 }
 
@@ -46,19 +50,19 @@ export function completeOn(t: Pick<Task, 'due_date' | 'frequency'>, day: Day) {
  * all appear on the same day. Daily tasks all start today.
  */
 export function spreadInitialDates<T extends { frequency: Frequency }>(tasks: T[], start: Day): (T & { due_date: Day })[] {
-  const counters: Record<Frequency, number> = { daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
-  const totals: Record<Frequency, number> = { daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
+  const counters: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
+  const totals: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
   tasks.forEach(t => totals[t.frequency]++)
   return tasks.map(t => {
     const i = counters[t.frequency]++
-    const offset = t.frequency === 'daily' ? 0 : Math.floor((i * SPAN_DAYS[t.frequency]) / totals[t.frequency])
+    const offset = SPAN_DAYS[t.frequency] === 1 ? 0 : Math.floor((i * SPAN_DAYS[t.frequency]) / totals[t.frequency])
     return { ...t, due_date: plusDays(start, offset) }
   })
 }
 
 /** For a newly added task: the least busy day within its first period (earliest on ties). */
 export function pickStartDate(freq: Frequency, existing: Pick<Task, 'due_date' | 'active'>[], start: Day): Day {
-  if (freq === 'daily') return start
+  if (SPAN_DAYS[freq] === 1) return start
   const load = new Map<Day, number>()
   existing.forEach(t => t.active && load.set(t.due_date, (load.get(t.due_date) ?? 0) + 1))
   let best = start

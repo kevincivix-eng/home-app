@@ -1,8 +1,9 @@
 import type { Day } from '../../lib/dates'
 
-export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly'
-export const FREQUENCIES: Frequency[] = ['daily', 'weekly', 'monthly', 'quarterly']
+export type Frequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
+export const FREQUENCIES: Frequency[] = ['once', 'daily', 'weekly', 'monthly', 'quarterly']
 export const FREQ_LABEL: Record<Frequency, string> = {
+  once: 'חד פעמי',
   daily: 'יומי',
   weekly: 'שבועי',
   monthly: 'חודשי',
@@ -20,6 +21,8 @@ export interface Task {
   title: string
   frequency: Frequency
   category: string
+  /** null = shared household task; otherwise the member this personal task belongs to */
+  owner_id: string | null
   /** The day the task (re)appears in the open list */
   due_date: Day
   active: boolean

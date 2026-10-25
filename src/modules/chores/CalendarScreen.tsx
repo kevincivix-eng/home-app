@@ -22,7 +22,7 @@ function monthGrid(year: number, month: number): Day[] {
 }
 
 export function CalendarScreen() {
-  const { tasks, completions, today, moveTask } = useChores()
+  const { tasks, completions, today, moveTask, me } = useChores()
   const toast = useToast()
   const [cursor, setCursor] = useState(() => { const d = fromDay(today); return { y: d.getFullYear(), m: d.getMonth() } })
   const [selectedDay, setSelectedDay] = useState<Day>(today)
@@ -32,7 +32,7 @@ export function CalendarScreen() {
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
 
   const days = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor])
-  const visible = tasks.filter(t => t.active && (showDaily || t.frequency !== 'daily'))
+  const visible = tasks.filter(t => t.active && (!t.owner_id || t.owner_id === me?.id) && (showDaily || t.frequency !== 'daily'))
   const byDay = useMemo(() => {
     const m = new Map<Day, Task[]>()
     visible.forEach(t => m.set(t.due_date, [...(m.get(t.due_date) ?? []), t]))
