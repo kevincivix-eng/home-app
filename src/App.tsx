@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './lib/auth'
-import { supabase } from './lib/supabase'
-import { Login, ProfileSetup } from './Login'
+import { HouseholdProvider, useHousehold } from './lib/household'
+import { AuthScreen, clearJoinCode, HouseholdSetup, NewPasswordScreen, pendingJoinCode, ProfileSetup } from './Onboarding'
 import { CalendarScreen } from './modules/chores/CalendarScreen'
 import { isOverdue } from './modules/chores/schedule'
 import { SettingsScreen } from './modules/chores/SettingsScreen'
@@ -20,12 +20,11 @@ const TABS: { id: string; label: string; icon: () => ReactNode; screen: () => Re
 ]
 
 function Shell() {
-  const { tasks, today, me, loading, error } = useChores()
+  const { tasks, today, loading, error } = useChores()
   const [tab, setTab] = useState(() => { try { return sessionStorage.getItem('tab') ?? 'today' } catch { return 'today' } })
   const go = (id: string) => { setTab(id); try { sessionStorage.setItem('tab', id) } catch { /* ignore */ } }
 
   if (loading) return null
-  if (supabase && !me) return <ProfileSetup />
 
   const overdue = tasks.filter(t => isOverdue(t, today)).length
   const Screen = TABS.find(t => t.id === tab)!.screen
@@ -47,10 +46,22 @@ function Shell() {
 }
 
 function Gate() {
-  const { ready, userId } = useAuth()
+  const { ready, userId, recovering } = useAuth()
   if (!ready) return null
-  if (!userId) return <Login />
-  return <ChoresProvider><Shell /></ChoresProvider>
+  if (recovering) return <NewPasswordScreen />
+  if (!userId) return <AuthScreen />
+  return <HouseholdProvider><HouseholdGate /></HouseholdProvider>
+}
+
+function HouseholdGate() {
+  const { loading, profile, household } = useHousehold()
+  // Arrived through an invite link while already in a household
+  const [joining, setJoining] = useState(() => !!pendingJoinCode())
+  if (loading) return null
+  if (!profile) return <ProfileSetup />
+  if (!household) return <HouseholdSetup />
+  if (joining) return <HouseholdSetup onCancel={() => { clearJoinCode(); setJoining(false) }} />
+  return <ChoresProvider key={household.id}><Shell /></ChoresProvider>
 }
 
 export default function App() {

@@ -236,3 +236,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .row-bars .b { height: 6px; border-radius: 0 3px 3px 0; }
 /* Rows wrapped by draggable containers keep their separators */
 .list > div + div > .cell::before { content: ""; position: absolute; top: 0; inset-inline-start: 52px; inset-inline-end: 0; border-top: 0.5px solid var(--sep); }
+.cell:disabled { color: inherit; cursor: default; }
+.cell:disabled:active { background: none; }
+input[dir="ltr"]:placeholder-shown { direction: rtl; }

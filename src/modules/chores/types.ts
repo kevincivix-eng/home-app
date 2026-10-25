@@ -51,7 +51,6 @@ export interface TaskEvent {
 }
 
 export interface ChoresData {
-  profiles: Profile[]
   tasks: Task[]
   completions: Completion[]
   events: TaskEvent[]

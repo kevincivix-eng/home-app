@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../../lib/auth'
+import { useHousehold } from '../../lib/household'
 import { type Day } from '../../lib/dates'
 import { useToday } from '../../lib/useToday'
-import { backend } from './backend'
+import { createBackend } from './backend'
 import { DEFAULT_TASKS } from './defaults'
 import { completeOn, pickStartDate, spreadInitialDates } from './schedule'
 import type { ChoresData, Completion, Frequency, Profile, Task } from './types'
 
 const uid = () => crypto.randomUUID()
-const EMPTY: ChoresData = { profiles: [], tasks: [], completions: [], events: [] }
+const EMPTY: ChoresData = { tasks: [], completions: [], events: [] }
 
 interface Store extends ChoresData {
+  profiles: Profile[]
   loading: boolean
   error: string | null
   today: Day
@@ -23,7 +25,6 @@ interface Store extends ChoresData {
   updateTask(id: string, patch: Partial<Task>): Promise<void>
   deleteTask(id: string): Promise<void>
   loadDefaults(): Promise<void>
-  saveProfile(p: Profile): Promise<void>
 }
 
 const Ctx = createContext<Store>(null!)
@@ -31,6 +32,8 @@ export const useChores = () => useContext(Ctx)
 
 export function ChoresProvider({ children }: { children: ReactNode }) {
   const { userId } = useAuth()
+  const { household, members: profiles } = useHousehold()
+  const backend = useMemo(() => createBackend(household!.id), [household?.id])
   const today = useToday()
   const [data, setData] = useState<ChoresData>(EMPTY)
   const [loading, setLoading] = useState(true)
@@ -46,26 +49,28 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [backend])
 
   useEffect(() => {
     if (!userId) return
+    setData(EMPTY)
+    setLoading(true)
     refresh()
     return backend.subscribe(refresh)
-  }, [userId, refresh])
+  }, [userId, backend, refresh])
 
   /** Apply locally right away for a snappy UI, then persist and re-sync */
   const mutate = useCallback(async (local: (d: ChoresData) => ChoresData, remote: () => Promise<void>) => {
     setData(local)
     try { await remote() } catch (e) { console.error(e); setError('השמירה נכשלה') }
     await refresh()
-  }, [refresh])
+  }, [refresh, backend])
 
-  const me = data.profiles.find(p => p.id === userId)
+  const me = profiles.find(p => p.id === userId)
 
   const store = useMemo<Store>(() => ({
-    ...data, loading, error, today, me,
-    profileById: id => data.profiles.find(p => p.id === id),
+    ...data, profiles, loading, error, today, me,
+    profileById: id => profiles.find(p => p.id === id),
 
     async complete(task, doneBy = userId!) {
       const r = completeOn(task, today)
@@ -124,11 +129,7 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
         .map(t => ({ ...t, id: uid(), active: true, created_at: now }))
       await mutate(d => ({ ...d, tasks: [...d.tasks, ...tasks] }), () => backend.addTasks(tasks))
     },
-
-    async saveProfile(p) {
-      await mutate(d => ({ ...d, profiles: [...d.profiles.filter(x => x.id !== p.id), p] }), () => backend.upsertProfile(p))
-    },
-  }), [data, loading, error, today, me, userId, mutate])
+  }), [data, profiles, loading, error, today, me, userId, mutate, backend])
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>
 }

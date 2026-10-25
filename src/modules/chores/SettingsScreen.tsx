@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../lib/auth'
 import { relativeDay } from '../../lib/dates'
-import { Avatar } from '../../ui/Avatar'
+import { HouseholdSettings } from '../../HouseholdSettings'
 import { ChevIcon, PlusIcon } from '../../ui/icons'
 import { DEMO_PROFILES, isDemo } from './backend'
 import { TaskEditor } from './components'
@@ -13,8 +13,8 @@ const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 
 export function SettingsScreen() {
-  const { tasks, me, today, loadDefaults } = useChores()
-  const { email, signOut, setDemoUser, userId } = useAuth()
+  const { tasks, today, loadDefaults } = useChores()
+  const { setDemoUser, userId } = useAuth()
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
   const missingDefaults = DEFAULT_TASKS.filter(d => !tasks.some(t => t.title === d.title)).length
 
@@ -27,31 +27,23 @@ export function SettingsScreen() {
 
       {isDemo && (
         <div className="banner">
-          <b>מצב דמו</b> – הנתונים נשמרים רק בדפדפן הזה ולא מסתנכרנים. אחרי חיבור Supabase שני הטלפונים יראו את אותן משימות.
+          <b>מצב דמו</b> – הנתונים נשמרים רק בדפדפן הזה ולא מסתנכרנים.
         </div>
       )}
 
-      <div className="section">
-        <div className="section-header">משתמש</div>
-        <div className="list">
-          {isDemo ? (
+      {isDemo ? (
+        <div className="section">
+          <div className="section-header">משתמש</div>
+          <div className="list">
             <div className="cell plain">
               <div className="cell-body">אני</div>
               <div className="seg" style={{ margin: 0, width: 160 }}>
                 {DEMO_PROFILES.map(p => <button key={p.id} className={p.id === userId ? 'on' : ''} onClick={() => setDemoUser(p.id)}>{p.name}</button>)}
               </div>
             </div>
-          ) : (
-            <>
-              <div className="cell plain">
-                <Avatar p={me} lg />
-                <div className="cell-body"><div className="cell-title">{me?.name}</div><div className="cell-sub">{email}</div></div>
-              </div>
-              <button className="cell plain" style={{ color: 'var(--red)' }} onClick={signOut}>התנתקות</button>
-            </>
-          )}
+          </div>
         </div>
-      </div>
+      ) : <HouseholdSettings />}
 
       {!isStandalone() && (
         <div className="section">
