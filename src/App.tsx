@@ -8,12 +8,15 @@ import { SettingsScreen } from './modules/chores/SettingsScreen'
 import { StatsScreen } from './modules/chores/StatsScreen'
 import { ChoresProvider, useChores } from './modules/chores/store'
 import { TodayScreen } from './modules/chores/TodayScreen'
-import { CalendarTab, SettingsTab, StatsTab, TodayTab } from './ui/icons'
+import { ShoppingScreen } from './modules/shopping/ShoppingScreen'
+import { ShoppingProvider } from './modules/shopping/store'
+import { CalendarTab, CartTab, SettingsTab, StatsTab, TodayTab } from './ui/icons'
 import { ToastProvider } from './ui/Toast'
 
-/** Future modules (shopping list, ...) get their own tab here */
+/** Each module gets its own tab here */
 const TABS: { id: string; label: string; icon: (p: { on?: boolean }) => ReactNode; screen: () => ReactNode }[] = [
   { id: 'today', label: 'היום', icon: TodayTab, screen: TodayScreen },
+  { id: 'shopping', label: 'קניות', icon: CartTab, screen: ShoppingScreen },
   { id: 'calendar', label: 'לוח', icon: CalendarTab, screen: CalendarScreen },
   { id: 'stats', label: 'סטטיסטיקה', icon: StatsTab, screen: StatsScreen },
   { id: 'settings', label: 'הגדרות', icon: SettingsTab, screen: SettingsScreen },
@@ -61,7 +64,7 @@ function HouseholdGate() {
   if (!profile) return <ProfileSetup />
   if (!household) return <HouseholdSetup />
   if (joining) return <HouseholdSetup onCancel={() => { clearJoinCode(); setJoining(false) }} />
-  return <ChoresProvider key={household.id}><Shell /></ChoresProvider>
+  return <ChoresProvider key={household.id}><ShoppingProvider><Shell /></ShoppingProvider></ChoresProvider>
 }
 
 export default function App() {

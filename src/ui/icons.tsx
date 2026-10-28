@@ -40,3 +40,17 @@ export const SettingsTab = ({ on }: { on?: boolean }) => (
     <circle cx="12" cy="19.5" r="2.6" fill={on ? 'currentColor' : 'var(--tab-bg)'} />
   </svg>
 )
+
+export const CartTab = ({ on }: { on?: boolean }) => (
+  <svg viewBox="0 0 28 28" {...t}>
+    <path d="M3.5 4.5h3l2.6 13h12.4l2.5-9.5H8" fill={on ? 'currentColor' : 'none'} fillOpacity={on ? 0.35 : 0} />
+    <path d="M3.5 4.5h3l2.6 13h12.4l2.5-9.5H8" />
+    <circle cx="11" cy="22.5" r="1.8" fill="currentColor" /><circle cx="20" cy="22.5" r="1.8" fill="currentColor" />
+  </svg>
+)
+export const SearchIcon = () => <svg viewBox="0 0 24 24" {...s} strokeWidth={2.2}><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L20 20" /></svg>
+export const ClearIcon = () => (
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" /><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="var(--card)" strokeWidth={2} strokeLinecap="round" /></svg>
+)
+export const MinusIcon = () => <svg viewBox="0 0 24 24" {...s} strokeWidth={2.4}><path d="M6 12h12" /></svg>
+export const MoreIcon = () => <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="18.5" cy="12" r="2" /></svg>

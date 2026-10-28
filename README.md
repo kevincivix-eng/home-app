@@ -1,6 +1,6 @@
 # הבית שלנו 🏠
 
-אפליקציה (PWA) לניהול משק הבית של קוין ומעין. מודול ראשון: **משימות קבועות**.
+אפליקציה (PWA) לניהול משק הבית. מודולים: **משימות** (קבועות, חד פעמיות, אישיות) ו**רשימות קניות**.
 
 ## הרצה מקומית
 ```
@@ -41,5 +41,7 @@ Safari → הכתובת של האתר → כפתור שיתוף → **הוספה
 - `src/modules/chores/schedule.ts` – לוגיקת תזמון (פונקציות טהורות + טסטים)
 - `src/modules/chores/backend.ts` – Supabase / localStorage
 - `src/modules/chores/store.tsx` – state + פעולות
+- `src/modules/shopping/` – רשימות קניות: `categories.ts` (מחלקות וזיהוי אוטומטי), `store.tsx`, `ShoppingScreen.tsx`
+- `supabase/migrations/` – עדכוני מסד נתונים לפי הסדר (`schema.sql` = התקנה מאפס)
 - `src/lib/household.tsx`, `src/Onboarding.tsx`, `src/HouseholdSettings.tsx` – משתמשים ומשקי בית
 - `src/App.tsx` – מעטפת וטאבים; מודולים עתידיים (רשימת קניות…) נוספים כאן

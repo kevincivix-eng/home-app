@@ -340,3 +340,47 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 .disclosure svg { width: 9px; height: 15px; color: var(--tint-text); transition: transform .2s; transform: scaleX(-1); }
 .disclosure.open svg { transform: rotate(90deg); }
 .member-head { display: flex; align-items: center; gap: 8px; margin: 14px 20px 8px; font-size: 15px; color: var(--text-2); }
+
+/* ── Shopping ─────────────────────────────────────────────────────────── */
+.list-switcher { display: flex; gap: 8px; overflow-x: auto; margin: -6px -16px 14px; padding: 2px 16px; scrollbar-width: none; }
+.list-switcher::-webkit-scrollbar { display: none; }
+.list-switcher .chip { flex: none; display: inline-flex; align-items: center; gap: 6px; background: var(--card); }
+.list-switcher .chip.on { background: var(--tint); }
+.list-switcher .chip svg { width: 16px; height: 16px; }
+.chip-count { font-size: 12px; font-weight: 600; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: inline-grid; place-items: center; background: var(--fill-2); }
+.chip.on .chip-count { background: rgba(255, 255, 255, 0.3); }
+.search {
+  position: sticky; top: calc(var(--safe-top) + 56px); z-index: 9;
+  display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; margin-bottom: 20px;
+  border-radius: 999px; background: var(--glass-strong);
+  backdrop-filter: blur(24px) saturate(190%); -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 0.5px solid var(--glass-edge); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+.search > svg { width: 18px; height: 18px; color: var(--text-2); flex: none; }
+.search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 17px; }
+.search input::placeholder { color: var(--text-2); }
+.search-clear { width: 20px; height: 20px; color: var(--text-3); display: grid; }
+.search-clear svg { width: 20px; height: 20px; }
+.add-row { color: var(--tint-text); font-weight: 600; }
+.add-circle { width: 24px; height: 24px; border-radius: 12px; background: var(--tint); color: #fff; display: grid; place-items: center; flex: none; }
+.add-circle svg { width: 16px; height: 16px; }
+.cat-group { margin-bottom: 14px; }
+.cat-group .section-header { margin-bottom: 6px; font-size: 13px; line-height: 18px; }
+.in-cart .cell-title { text-decoration: line-through; color: var(--text-2); }
+.qty { color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.remove-btn { width: 28px; height: 28px; border-radius: 14px; display: grid; place-items: center; color: var(--text-3); background: var(--fill); flex: none; }
+.remove-btn svg { width: 14px; height: 14px; }
+.finish-btn { margin-top: 14px; }
+.catalog { display: flex; flex-wrap: wrap; gap: 8px; }
+.catalog-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px 8px 12px; border-radius: 999px;
+  background: var(--card); font-size: 15px; line-height: 20px; transition: transform .12s, background .15s;
+  -webkit-touch-callout: none;
+}
+.catalog-chip:active { transform: scale(0.94); background: var(--fill); }
+.catalog-chip svg { width: 14px; height: 14px; color: var(--tint-text); }
+.stepper { display: flex; align-items: center; gap: 4px; margin-inline-start: auto; background: var(--fill); border-radius: 999px; padding: 3px; }
+.stepper button { width: 36px; height: 30px; border-radius: 999px; font-size: 20px; line-height: 1; }
+.stepper button:disabled { color: var(--text-3); }
+.stepper span { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.icon-chips .chip { font-size: 22px; padding: 6px 10px; }
