@@ -8,7 +8,7 @@ alter table tasks drop constraint if exists tasks_frequency_check;
 alter table tasks add constraint tasks_frequency_check check (frequency in ('once', 'daily', 'weekly', 'monthly', 'quarterly'));
 
 -- A personal task must belong to a member of the same household
-create or replace function check_task_owner() returns trigger language plpgsql as $$
+create or replace function check_task_owner() returns trigger language plpgsql set search_path = public as $$
 begin
   if new.owner_id is not null and not exists (
     select 1 from household_members where household_id = new.household_id and user_id = new.owner_id
