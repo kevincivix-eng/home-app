@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../../lib/auth'
+import { compressImage } from '../../lib/photos'
 import { useHousehold } from '../../lib/household'
 import { createShoppingBackend } from './backend'
 import { guessCategory, sameName } from './categories'
@@ -22,6 +23,9 @@ interface ShoppingStore extends ShoppingData {
   toggleCart(item: ShoppingItem): Promise<void>
   updateItem(id: string, patch: Partial<ShoppingItem>): Promise<void>
   deleteItem(id: string): Promise<void>
+  setPhoto(item: ShoppingItem, file: File): Promise<void>
+  removePhoto(item: ShoppingItem): Promise<void>
+  photoUrl(path: string): Promise<string>
   /** Everything in the cart goes back to the catalog */
   finishShopping(listId: string): Promise<number>
   addList(l: Pick<ShoppingList, 'name' | 'icon' | 'owner_id'>): Promise<void>
@@ -84,7 +88,7 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
       }
       const item: ShoppingItem = {
         id: uid(), list_id: listId, name, category: guessCategory(name, data.items),
-        needed: true, in_cart: false, quantity: null, note: null, times_bought: 0, last_bought_at: null,
+        needed: true, in_cart: false, quantity: null, note: null, image_path: null, times_bought: 0, last_bought_at: null,
         created_at: new Date().toISOString(),
       }
       await mutate(d => ({ ...d, items: [...d.items, item] }), () => backend.addItem(item))
@@ -93,7 +97,26 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
     setNeeded: (item, needed) => patchItems([{ id: item.id, patch: needed ? { needed: true, in_cart: false } : { needed: false, in_cart: false, quantity: null } }]),
     toggleCart: item => patchItems([{ id: item.id, patch: { in_cart: !item.in_cart } }]),
     updateItem: (id, patch) => patchItems([{ id, patch }]),
-    deleteItem: id => mutate(d => ({ ...d, items: d.items.filter(i => i.id !== id) }), () => backend.deleteItem(id)),
+    deleteItem: id => {
+      const old = data.items.find(i => i.id === id)?.image_path
+      return mutate(d => ({ ...d, items: d.items.filter(i => i.id !== id) }), async () => {
+        await backend.deleteItem(id)
+        if (old) await backend.removePhoto(old)
+      })
+    },
+
+    async setPhoto(item, file) {
+      const path = await backend.uploadPhoto(item.id, await compressImage(file))
+      await patchItems([{ id: item.id, patch: { image_path: path } }])
+      if (item.image_path) await backend.removePhoto(item.image_path)
+    },
+    async removePhoto(item) {
+      if (!item.image_path) return
+      const old = item.image_path
+      await patchItems([{ id: item.id, patch: { image_path: null } }])
+      await backend.removePhoto(old)
+    },
+    photoUrl: path => backend.photoUrl(path),
 
     async finishShopping(listId) {
       const now = new Date().toISOString()

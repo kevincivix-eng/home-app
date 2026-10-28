@@ -384,3 +384,18 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 .stepper button:disabled { color: var(--text-3); }
 .stepper span { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
 .icon-chips .chip { font-size: 22px; padding: 6px 10px; }
+.thumb { flex: none; border-radius: 8px; overflow: hidden; background: var(--fill); display: block; padding: 0; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.catalog-chip .thumb { border-radius: 6px; }
+.photo-preview { display: block; width: 100%; height: 220px; background: var(--fill); padding: 0; }
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-add { font-weight: 500; }
+.photo-viewer {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.94); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: calc(var(--safe-top) + 16px) 12px calc(var(--safe-bottom) + 16px);
+  animation: fade .2s;
+}
+.photo-viewer img { max-width: 100%; max-height: calc(100% - 48px); object-fit: contain; border-radius: 14px; }
+.photo-caption { color: #fff; margin-top: 14px; font-size: 17px; font-weight: 600; }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(128, 128, 128, 0.3); border-top-color: var(--tint); animation: spin .8s linear infinite; margin: auto; }
+@keyframes spin { to { transform: rotate(360deg); } }

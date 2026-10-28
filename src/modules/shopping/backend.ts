@@ -1,3 +1,4 @@
+import { blobToDataUrl, compressImage } from '../../lib/photos'
 import { supabase } from '../../lib/supabase'
 import type { ShoppingData, ShoppingItem, ShoppingList } from './types'
 
@@ -10,7 +11,15 @@ export interface ShoppingBackend {
   addItem(i: ShoppingItem): Promise<void>
   updateItems(patches: { id: string; patch: Partial<ShoppingItem> }[]): Promise<void>
   deleteItem(id: string): Promise<void>
+  /** Stores a (compressed) photo and returns its path */
+  uploadPhoto(itemId: string, photo: Blob): Promise<string>
+  photoUrl(path: string): Promise<string>
+  removePhoto(path: string): Promise<void>
 }
+
+const BUCKET = 'item-photos'
+/** Signed URLs are valid for an hour; reuse them while fresh */
+const urlCache = new Map<string, { url: string; expires: number }>()
 
 const check = <T>({ data, error }: { data: T; error: unknown }) => {
   if (error) throw error
@@ -45,6 +54,20 @@ function supabaseBackend(household_id: string): ShoppingBackend {
       await Promise.all(patches.map(async ({ id, patch }) => check(await sb.from('shopping_items').update(patch).eq('id', id))))
     },
     deleteItem: async id => { check(await sb.from('shopping_items').delete().eq('id', id)) },
+    async uploadPhoto(itemId, photo) {
+      // a new name each time, so other phones never see a stale cached image
+      const path = `${household_id}/${itemId}-${Date.now()}.jpg`
+      check(await sb.storage.from(BUCKET).upload(path, photo, { contentType: 'image/jpeg', cacheControl: '31536000' }))
+      return path
+    },
+    async photoUrl(path) {
+      const hit = urlCache.get(path)
+      if (hit && hit.expires > Date.now()) return hit.url
+      const signedUrl = check(await sb.storage.from(BUCKET).createSignedUrl(path, 3600))!.signedUrl
+      urlCache.set(path, { url: signedUrl, expires: Date.now() + 55 * 60_000 })
+      return signedUrl
+    },
+    removePhoto: async path => { await sb.storage.from(BUCKET).remove([path]) },
   }
 }
 
@@ -85,6 +108,10 @@ function localBackend(): ShoppingBackend {
       d.items = d.items.map(i => (byId.has(i.id) ? { ...i, ...byId.get(i.id) } : i))
     }),
     deleteItem: async id => write(d => { d.items = d.items.filter(i => i.id !== id) }),
+    // demo: keep a small copy inline in localStorage
+    uploadPhoto: async (_id, photo) => blobToDataUrl(await compressImage(photo, 480, 0.7)),
+    photoUrl: async path => path,
+    removePhoto: async () => {},
   }
 }
 

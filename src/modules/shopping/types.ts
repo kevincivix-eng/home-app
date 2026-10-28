@@ -19,6 +19,8 @@ export interface ShoppingItem {
   in_cart: boolean
   quantity: number | null
   note: string | null
+  /** storage path (or a data: URL in demo mode) */
+  image_path: string | null
   times_bought: number
   last_bought_at: string | null
   created_at: string

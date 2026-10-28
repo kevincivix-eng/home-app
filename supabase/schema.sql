@@ -3,7 +3,7 @@
 -- WARNING: drops the existing app tables (safe while they are still empty).
 
 drop table if exists shopping_items, shopping_lists, task_events, completions, tasks, household_members, households, profiles cascade;
-drop function if exists is_member, is_owner, create_household, join_household, regenerate_invite, gen_invite_code, check_task_owner, shopping_item_household, check_list_owner, create_default_lists cascade;
+drop function if exists is_member, is_owner, create_household, join_household, regenerate_invite, gen_invite_code, check_task_owner, shopping_item_household, check_list_owner, create_default_lists, photo_household_ok cascade;
 
 -- ── People ────────────────────────────────────────────────────────────────
 create table profiles (
@@ -288,3 +288,34 @@ end $$;
 do $$ begin
   alter publication supabase_realtime add table shopping_lists, shopping_items;
 exception when duplicate_object then null; end $$;
+
+-- ── Product photos (same as migrations/005_item_photos.sql) ───────────────
+-- Product photos: a private storage bucket, one folder per household
+-- ("<household_id>/<item_id>-<timestamp>.jpg"). Only household members can read/write.
+
+alter table shopping_items add column if not exists image_path text;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('item-photos', 'item-photos', false, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+-- First path segment must be a household the user belongs to
+create or replace function photo_household_ok(object_name text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case
+    when (storage.foldername(object_name))[1] ~ '^[0-9a-f-]{36}$'
+      then is_member(((storage.foldername(object_name))[1])::uuid)
+    else false
+  end
+$$;
+revoke execute on function photo_household_ok(text) from public, anon;
+grant execute on function photo_household_ok(text) to authenticated;
+
+drop policy if exists item_photos_select on storage.objects;
+drop policy if exists item_photos_insert on storage.objects;
+drop policy if exists item_photos_update on storage.objects;
+drop policy if exists item_photos_delete on storage.objects;
+create policy item_photos_select on storage.objects for select to authenticated using (bucket_id = 'item-photos' and photo_household_ok(name));
+create policy item_photos_insert on storage.objects for insert to authenticated with check (bucket_id = 'item-photos' and photo_household_ok(name));
+create policy item_photos_update on storage.objects for update to authenticated using (bucket_id = 'item-photos' and photo_household_ok(name)) with check (bucket_id = 'item-photos' and photo_household_ok(name));
+create policy item_photos_delete on storage.objects for delete to authenticated using (bucket_id = 'item-photos' and photo_household_ok(name));

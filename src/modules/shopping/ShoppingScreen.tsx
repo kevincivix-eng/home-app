@@ -3,6 +3,7 @@ import { CheckIcon, ClearIcon, MinusIcon, MoreIcon, PlusIcon, SearchIcon } from 
 import { GlassButton, Page } from '../../ui/Page'
 import { useToast } from '../../ui/Toast'
 import { categoryRank, matches, sameName } from './categories'
+import { PhotoViewer, Thumb } from './Photo'
 import { ItemSheet, ListSheet } from './sheets'
 import { useShopping } from './store'
 import type { ShoppingItem } from './types'
@@ -22,6 +23,7 @@ export function ShoppingScreen() {
   const [query, setQuery] = useState('')
   const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null)
   const [listSheet, setListSheet] = useState<'new' | 'edit' | null>(null)
+  const [viewing, setViewing] = useState<ShoppingItem | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const list = shop.activeList
 
@@ -110,13 +112,13 @@ export function ShoppingScreen() {
           {byCategory(toBuy).map(([cat, list]) => (
             <div key={cat} className="cat-group">
               <div className="section-header">{cat}</div>
-              <div className="list">{list.map(i => <NeededRow key={i.id} item={i} onOpen={() => setEditingItem(i)} />)}</div>
+              <div className="list">{list.map(i => <NeededRow key={i.id} item={i} onOpen={() => setEditingItem(i)} onPhoto={() => setViewing(i)} />)}</div>
             </div>
           ))}
           {inCart.length > 0 && (
             <div className="cat-group">
               <div className="section-header">בעגלה · {inCart.length}</div>
-              <div className="list">{inCart.map(i => <NeededRow key={i.id} item={i} onOpen={() => setEditingItem(i)} />)}</div>
+              <div className="list">{inCart.map(i => <NeededRow key={i.id} item={i} onOpen={() => setEditingItem(i)} onPhoto={() => setViewing(i)} />)}</div>
               {!q && <button className="btn finish-btn" onClick={finish}>סיימתי קנייה · {cartCount}</button>}
             </div>
           )}
@@ -145,17 +147,19 @@ export function ShoppingScreen() {
 
       <ItemSheet item={editingItem && shop.items.find(i => i.id === editingItem.id) || null} onClose={() => setEditingItem(null)} />
       <ListSheet mode={listSheet} onClose={() => setListSheet(null)} />
+      <PhotoViewer path={viewing?.image_path ?? null} title={viewing?.name} onClose={() => setViewing(null)} />
     </Page>
   )
 }
 
-function NeededRow({ item, onOpen }: { item: ShoppingItem; onOpen: () => void }) {
+function NeededRow({ item, onOpen, onPhoto }: { item: ShoppingItem; onOpen: () => void; onPhoto: () => void }) {
   const { toggleCart, setNeeded } = useShopping()
   return (
     <div className={`cell${item.in_cart ? ' in-cart' : ''}`}>
       <button className={`check${item.in_cart ? ' on' : ''}`} aria-label={item.in_cart ? `החזר "${item.name}" מהעגלה` : `"${item.name}" בעגלה`} onClick={() => toggleCart(item)}>
         {item.in_cart && <CheckIcon />}
       </button>
+      {item.image_path && <Thumb path={item.image_path} onClick={onPhoto} />}
       <button className="cell-body" onClick={onOpen} style={{ textAlign: 'start' }}>
         <div className="cell-title">
           {item.name}{item.quantity && item.quantity > 1 ? <span className="qty"> ×{item.quantity}</span> : null}
@@ -182,7 +186,7 @@ function CatalogChip({ item, onAdd, onEdit }: { item: ShoppingItem; onAdd: () =>
       onClick={() => { if (!long.current) onAdd() }}
       aria-label={`הוסף "${item.name}" לרשימה`}
     >
-      <PlusIcon />{item.name}
+      {item.image_path ? <Thumb path={item.image_path} size={22} /> : <PlusIcon />}{item.name}
     </button>
   )
 }

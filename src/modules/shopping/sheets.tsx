@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Sheet } from '../../ui/Sheet'
 import { useChores } from '../chores/store'
 import { CATEGORIES } from './categories'
+import { PhotoViewer, usePhotoUrl } from './Photo'
 import { useShopping } from './store'
 import type { ShoppingItem } from './types'
 
@@ -15,6 +16,7 @@ export function ItemSheet({ item, onClose }: { item: ShoppingItem | null; onClos
 
 function ItemBody({ item, onClose }: { item: ShoppingItem; onClose: () => void }) {
   const { updateItem, setNeeded, deleteItem } = useShopping()
+  const live = useShopping().items.find(i => i.id === item.id) ?? item
   const [name, setName] = useState(item.name)
   const [qty, setQty] = useState(item.quantity ?? 1)
   const [note, setNote] = useState(item.note ?? '')
@@ -47,6 +49,8 @@ function ItemBody({ item, onClose }: { item: ShoppingItem; onClose: () => void }
         <div className="field"><input value={note} onChange={e => setNote(e.target.value)} maxLength={120} placeholder="הערה (לא חובה) – למשל: לא בשלות" /></div>
       </div>
 
+      <PhotoSection item={live} />
+
       <div className="section">
         <div className="section-header">מחלקה</div>
         <div className="list chips">
@@ -69,6 +73,47 @@ function ItemBody({ item, onClose }: { item: ShoppingItem; onClose: () => void }
           : <button className="action destructive" onClick={() => setConfirmDelete(true)}>מחיקת המוצר</button>}
       </div>
     </>
+  )
+}
+
+function PhotoSection({ item }: { item: ShoppingItem }) {
+  const { setPhoto, removePhoto } = useShopping()
+  const url = usePhotoUrl(item.image_path)
+  const input = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [viewing, setViewing] = useState(false)
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return
+    setBusy(true); setError(null)
+    try { await setPhoto(item, file) } catch (e) { console.error(e); setError('העלאת התמונה נכשלה') }
+    setBusy(false)
+    if (input.current) input.current.value = ''
+  }
+
+  return (
+    <div className="section">
+      <div className="section-header">תמונה</div>
+      {/* no "capture" attribute: iOS then offers camera, photo library or files */}
+      <input ref={input} type="file" accept="image/*" hidden onChange={e => onFile(e.target.files?.[0])} />
+      {error && <div className="error-banner">{error}</div>}
+      {item.image_path ? (
+        <div className="list">
+          <button className="photo-preview" onClick={() => setViewing(true)} aria-label="הגדלת התמונה">
+            {url ? <img src={url} alt={item.name} /> : <div className="spinner" />}
+          </button>
+          <button className="action" disabled={busy} onClick={() => input.current?.click()}>{busy ? 'מעלה…' : 'החלפת תמונה'}</button>
+          <button className="action destructive" disabled={busy} onClick={() => removePhoto(item)}>הסרת תמונה</button>
+        </div>
+      ) : (
+        <button className="btn secondary photo-add" disabled={busy} onClick={() => input.current?.click()}>
+          {busy ? 'מעלה…' : '📷 הוספת תמונה'}
+        </button>
+      )}
+      <div className="section-footer">למשל: צילום של המותג או הסוג המדויק, כדי שמי שקונה ידע מה לחפש.</div>
+      <PhotoViewer path={viewing ? item.image_path : null} title={item.name} onClose={() => setViewing(false)} />
+    </div>
   )
 }
 
