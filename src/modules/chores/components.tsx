@@ -22,8 +22,9 @@ export function useCompleteTask() {
   const { complete, undo, profileById, today } = useChores()
   const toast = useToast()
   return async (t: Task, doneBy?: string) => {
-    const c = await complete(t, doneBy)
+    const { c, again } = await complete(t, doneBy)
     const who = profileById(c.done_by)?.name
+    if (again) return toast({ text: `"${t.title}" כבר סומנה היום${who ? ` · ${who}` : ''}` })
     const next = t.frequency === 'once' ? '' : ` · חוזרת ${relativeDay(addPeriod(today, t.frequency), today)}`
     toast({ text: `✓ ${t.title}${who ? ` · ${who}` : ''}${next}`, action: { label: 'ביטול', run: () => undo(c) } })
   }
@@ -42,6 +43,7 @@ export function TaskRow({ task, onOpen, extra, lead, early, showFreq = true }: {
       {(open || early) && (
         <button
           className={`check${checking ? ' on' : ''}`}
+          disabled={checking}
           aria-label={`סמן "${task.title}" כבוצע${open ? '' : ' (מוקדם)'}`}
           onClick={() => { setChecking(true); setTimeout(() => completeTask(task), 180) }}
         >
@@ -98,11 +100,12 @@ export function DoneRow({ c, title, task, onOpen }: { c: Completion; title: stri
 
 /** Action sheet for a task: who did it, postpone, pick date, edit */
 export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onClose: () => void; onEdit: (t: Task) => void }) {
-  const { profiles, today, moveTask } = useChores()
+  const { profiles, today, moveTask, doneToday, undo } = useChores()
   const completeTask = useCompleteTask()
   const toast = useToast()
   if (!task) return <Sheet open={false} onClose={onClose}>{null}</Sheet>
   const open = task.due_date <= today
+  const marked = doneToday(task)
   const move = (d: Day) => {
     moveTask(task, d)
     toast({ text: `"${task.title}" הועברה ל${relativeDay(d, today)}` })
@@ -112,14 +115,28 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
     <Sheet open onClose={onClose}>
       <div className="sheet-title">{task.title}</div>
       <div className="sheet-sub">{FREQ_LABEL[task.frequency]} · {task.category} · {open ? dueText(task, today) : `מופיעה ב-${shortDate(task.due_date)}`}</div>
-      <div className="action-group">
-        {profiles.map(p => (
-          <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
-            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open || task.frequency === 'once' ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
-          </button>
-        ))}
-      </div>
-      {!open && task.frequency !== 'once' && <div className="section-footer" style={{ margin: '-2px 16px 10px' }}>סימון מוקדם מאפס את הספירה – הפעם הבאה תיקבע מהיום.</div>}
+      {marked ? (
+        <>
+          <div className="section-footer" style={{ margin: '0 16px 6px' }}>סומנה היום כבוצעת. אפשר לשנות מי ביצע או לבטל את הסימון.</div>
+          <div className="action-group">
+            {profiles.map(p => (
+              <button key={p.id} className="action primary" disabled={marked.done_by === p.id} onClick={() => { completeTask(task, p.id); onClose() }}>
+                <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {marked.done_by === p.id ? '✓ ' : ''}בוצע ע״י {p.name}</span>
+              </button>
+            ))}
+            <button className="action destructive" onClick={() => { undo(marked); onClose() }}>בטל סימון</button>
+          </div>
+        </>
+      ) : (
+        <div className="action-group">
+          {profiles.map(p => (
+            <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
+              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open || task.frequency === 'once' ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!marked && !open && task.frequency !== 'once' && <div className="section-footer" style={{ margin: '-2px 16px 10px' }}>סימון מוקדם מאפס את הספירה – הפעם הבאה תיקבע מהיום.</div>}
       <div className="action-group">
         {!open && <button className="action" onClick={() => move(today)}>הקדם להיום</button>}
         <button className="action" onClick={() => move(plusDays(task.due_date > today ? task.due_date : today, 1))}>

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../../lib/auth'
 import { useHousehold } from '../../lib/household'
 import { type Day } from '../../lib/dates'
@@ -18,7 +18,9 @@ interface Store extends ChoresData {
   today: Day
   me: Profile | undefined
   profileById(id: string): Profile | undefined
-  complete(task: Task, doneBy?: string): Promise<Completion>
+  /** Already marked today → only changes who did it (`again`), never a second completion */
+  complete(task: Task, doneBy?: string): Promise<{ c: Completion; again: boolean }>
+  doneToday(task: Task): Completion | undefined
   undo(c: Completion): Promise<void>
   moveTask(task: Task, to: Day): Promise<void>
   addTask(t: { title: string; frequency: Frequency; category: string; owner_id: string | null; due_date?: Day }): Promise<void>
@@ -38,6 +40,12 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<ChoresData>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Completions not yet rendered, recorded synchronously so rapid repeated taps
+  // (before state catches up) find the first one instead of adding another
+  const marking = useRef(new Map<string, Completion>())
+  const latest = useRef(data)
+  latest.current = data
+  useEffect(() => { marking.current.clear() }, [data])
 
   const refresh = useCallback(async () => {
     try {
@@ -72,7 +80,19 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
     ...data, profiles, loading, error, today, me,
     profileById: id => profiles.find(p => p.id === id),
 
+    doneToday: task => data.completions.filter(c => c.task_id === task.id && c.completed_on === today).at(-1),
+
     async complete(task, doneBy = userId!) {
+      const prev = latest.current.completions.filter(c => c.task_id === task.id && c.completed_on === today).at(-1)
+        ?? marking.current.get(task.id)
+      if (prev) {
+        const patch = { done_by: doneBy, marked_by: userId! }
+        if (prev.done_by !== doneBy) await mutate(
+          d => ({ ...d, completions: d.completions.map(x => (x.id === prev.id ? { ...x, ...patch } : x)) }),
+          () => backend.updateCompletion(prev.id, patch),
+        )
+        return { c: { ...prev, ...patch }, again: true }
+      }
       const r = completeOn(task, today)
       const c: Completion = {
         id: uid(), task_id: task.id,
@@ -80,13 +100,14 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
         completed_at: new Date().toISOString(),
         done_by: doneBy, marked_by: userId!, on_time: r.on_time, days_late: r.days_late,
       }
+      marking.current.set(task.id, c)
       // Recurring → schedule the next round; one-time → done for good
       const patch: Partial<Task> = r.next_due ? { due_date: r.next_due } : { active: false }
       await mutate(
         d => ({ ...d, completions: [...d.completions, c], tasks: d.tasks.map(t => (t.id === task.id ? { ...t, ...patch } : t)) }),
         async () => { await backend.addCompletion(c); await backend.updateTask(task.id, patch) },
       )
-      return c
+      return { c, again: false }
     },
 
     async undo(c) {

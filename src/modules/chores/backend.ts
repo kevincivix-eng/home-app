@@ -9,6 +9,7 @@ export interface Backend {
   updateTask(id: string, patch: Partial<Task>): Promise<void>
   deleteTask(id: string): Promise<void>
   addCompletion(c: Completion): Promise<void>
+  updateCompletion(id: string, patch: Partial<Completion>): Promise<void>
   deleteCompletion(id: string): Promise<void>
   addEvent(e: TaskEvent): Promise<void>
 }
@@ -44,6 +45,7 @@ function supabaseBackend(household_id: string): Backend {
     updateTask: async (id, patch) => { check(await sb.from('tasks').update(patch).eq('id', id)) },
     deleteTask: async id => { check(await sb.from('tasks').delete().eq('id', id)) },
     addCompletion: async c => { check(await sb.from('completions').insert({ ...c, ...h })) },
+    updateCompletion: async (id, patch) => { check(await sb.from('completions').update(patch).eq('id', id)) },
     deleteCompletion: async id => { check(await sb.from('completions').delete().eq('id', id)) },
     addEvent: async e => { check(await sb.from('task_events').insert({ ...e, ...h })) },
   }
@@ -87,6 +89,7 @@ function localBackend(): Backend {
       d.events = d.events.filter(e => e.task_id !== id)
     }),
     addCompletion: async c => write(d => { d.completions.push(c) }),
+    updateCompletion: async (id, patch) => write(d => { d.completions = d.completions.map(c => (c.id === id ? { ...c, ...patch } : c)) }),
     deleteCompletion: async id => write(d => { d.completions = d.completions.filter(c => c.id !== id) }),
     addEvent: async e => write(d => { d.events.push(e) }),
   }
