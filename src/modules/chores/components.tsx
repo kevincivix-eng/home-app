@@ -21,8 +21,8 @@ export function dueText(t: Task, today: Day): ReactNode {
 export function useCompleteTask() {
   const { complete, undo, profileById, today } = useChores()
   const toast = useToast()
-  return async (t: Task, doneBy?: string) => {
-    const { c, again } = await complete(t, doneBy)
+  return async (t: Task, doneBy?: string, repeat?: boolean) => {
+    const { c, again } = await complete(t, doneBy, repeat)
     const who = profileById(c.done_by)?.name
     if (again) return toast({ text: `"${t.title}" כבר סומנה היום${who ? ` · ${who}` : ''}` })
     const next = t.frequency === 'once' ? '' : ` · חוזרת ${relativeDay(addPeriod(today, t.frequency), today)}`
@@ -103,16 +103,18 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
   const { profiles, today, moveTask, doneToday, undo } = useChores()
   const completeTask = useCompleteTask()
   const toast = useToast()
-  if (!task) return <Sheet open={false} onClose={onClose}>{null}</Sheet>
+  const [repeat, setRepeat] = useState(false)
+  const close = () => { setRepeat(false); onClose() }
+  if (!task) return <Sheet open={false} onClose={close}>{null}</Sheet>
   const open = task.due_date <= today
   const marked = doneToday(task)
   const move = (d: Day) => {
     moveTask(task, d)
     toast({ text: `"${task.title}" הועברה ל${relativeDay(d, today)}` })
-    onClose()
+    close()
   }
   return (
-    <Sheet open onClose={onClose}>
+    <Sheet open onClose={close}>
       <div className="sheet-title">{task.title}</div>
       <div className="sheet-sub">{FREQ_LABEL[task.frequency]} · {task.category} · {open ? dueText(task, today) : `מופיעה ב-${shortDate(task.due_date)}`}</div>
       {marked ? (
@@ -120,17 +122,26 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
           <div className="section-footer" style={{ margin: '0 16px 6px' }}>סומנה היום כבוצעת. אפשר לשנות מי ביצע או לבטל את הסימון.</div>
           <div className="action-group">
             {profiles.map(p => (
-              <button key={p.id} className="action primary" disabled={marked.done_by === p.id} onClick={() => { completeTask(task, p.id); onClose() }}>
+              <button key={p.id} className="action primary" disabled={marked.done_by === p.id} onClick={() => { completeTask(task, p.id); close() }}>
                 <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {marked.done_by === p.id ? '✓ ' : ''}בוצע ע״י {p.name}</span>
               </button>
             ))}
-            <button className="action destructive" onClick={() => { undo(marked); onClose() }}>בטל סימון</button>
+            <button className="action destructive" onClick={() => { undo(marked); close() }}>בטל סימון</button>
+          </div>
+          <div className="action-group">
+            {repeat
+              ? profiles.map(p => (
+                <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id, true); close() }}>
+                  <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> בוצעה שוב ע״י {p.name}</span>
+                </button>
+              ))
+              : <button className="action" onClick={() => setRepeat(true)}>בוצעה שוב היום…</button>}
           </div>
         </>
       ) : (
         <div className="action-group">
           {profiles.map(p => (
-            <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); onClose() }}>
+            <button key={p.id} className="action primary" onClick={() => { completeTask(task, p.id); close() }}>
               <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><Avatar p={p} /> {open || task.frequency === 'once' ? 'בוצע' : 'בוצע מוקדם'} ע״י {p.name}</span>
             </button>
           ))}
@@ -152,10 +163,10 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
             style={{ position: 'absolute', inset: 0, opacity: 0 }}
           />
         </label>
-        <button className="action" onClick={() => { onClose(); onEdit(task) }}>עריכת משימה</button>
+        <button className="action" onClick={() => { close(); onEdit(task) }}>עריכת משימה</button>
       </div>
       <div className="action-group">
-        <button className="action primary" onClick={onClose}>סגור</button>
+        <button className="action primary" onClick={close}>סגור</button>
       </div>
     </Sheet>
   )

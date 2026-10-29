@@ -19,7 +19,8 @@ interface Store extends ChoresData {
   me: Profile | undefined
   profileById(id: string): Profile | undefined
   /** Already marked today → only changes who did it (`again`), never a second completion */
-  complete(task: Task, doneBy?: string): Promise<{ c: Completion; again: boolean }>
+  /** `repeat`: deliberately done once more today – adds another completion */
+  complete(task: Task, doneBy?: string, repeat?: boolean): Promise<{ c: Completion; again: boolean }>
   doneToday(task: Task): Completion | undefined
   undo(c: Completion): Promise<void>
   moveTask(task: Task, to: Day): Promise<void>
@@ -82,8 +83,8 @@ export function ChoresProvider({ children }: { children: ReactNode }) {
 
     doneToday: task => data.completions.filter(c => c.task_id === task.id && c.completed_on === today).at(-1),
 
-    async complete(task, doneBy = userId!) {
-      const prev = latest.current.completions.filter(c => c.task_id === task.id && c.completed_on === today).at(-1)
+    async complete(task, doneBy = userId!, repeat = false) {
+      const prev = repeat ? undefined : latest.current.completions.filter(c => c.task_id === task.id && c.completed_on === today).at(-1)
         ?? marking.current.get(task.id)
       if (prev) {
         const patch = { done_by: doneBy, marked_by: userId! }
