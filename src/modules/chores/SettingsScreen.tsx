@@ -4,6 +4,7 @@ import { relativeDay } from '../../lib/dates'
 import { HouseholdSettings } from '../../HouseholdSettings'
 import { ChevIcon, PlusIcon } from '../../ui/icons'
 import { GlassButton, Page } from '../../ui/Page'
+import { SuggestionsScreen } from '../suggestions/SuggestionsScreen'
 import { DEMO_PROFILES, isDemo } from './backend'
 import { TaskEditor } from './components'
 import { DEFAULT_TASKS } from './defaults'
@@ -18,7 +19,10 @@ export function SettingsScreen() {
   const { tasks, today, loadDefaults, profileById, me } = useChores()
   const { setDemoUser, userId } = useAuth()
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
+  const [suggestions, setSuggestions] = useState(false)
   const missingDefaults = DEFAULT_TASKS.filter(d => !tasks.some(t => t.title === d.title)).length
+
+  if (suggestions) return <SuggestionsScreen onBack={() => setSuggestions(false)} />
 
   return (
     <Page title="הגדרות" actions={<GlassButton label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></GlassButton>}>
@@ -42,6 +46,15 @@ export function SettingsScreen() {
           </div>
         </div>
       ) : <HouseholdSettings />}
+
+      <div className="section">
+        <div className="list">
+          <button className="cell plain" onClick={() => setSuggestions(true)}>
+            <div className="cell-body"><div className="cell-title">💡 הצעות לשיפור</div></div>
+            <ChevIcon />
+          </button>
+        </div>
+      </div>
 
       {!isStandalone() && (
         <div className="section">

@@ -123,6 +123,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .navbar-title { font-size: 17px; font-weight: 600; opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
 .navbar.scrolled .navbar-title { opacity: 1; transform: none; }
 .navbar-actions { position: absolute; inset-inline-end: 16px; bottom: 6px; display: flex; gap: 10px; }
+.navbar-back { position: absolute; inset-inline-start: 16px; bottom: 6px; }
 .title-block { margin: 0 4px 18px; }
 .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.37px; margin: 0; }
 .subtitle { color: var(--text-2); font-size: 15px; line-height: 20px; letter-spacing: -0.24px; margin-top: 2px; }
@@ -249,6 +250,11 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px; }
 .chip { padding: 7px 14px; border-radius: 999px; background: var(--fill); font-size: 15px; line-height: 20px; transition: background .2s; }
 .chip.on { background: var(--tint); color: #fff; font-weight: 600; }
+.suggestion-compose { padding: 14px 20px; }
+.suggestion-compose textarea { display: block; width: 100%; border: 0; background: transparent; outline: none; resize: none; font-size: 17px; line-height: 22px; }
+.suggestion-compose textarea::placeholder { color: var(--text-3); }
+.suggestion-body { font-size: 17px; line-height: 22px; white-space: pre-wrap; overflow-wrap: anywhere; text-align: start; }
+.suggestion-reply { margin-top: 6px; font-size: 15px; line-height: 20px; color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere; text-align: start; }
 .chip-input { width: 140px; padding: 6px 14px; border: 1px solid var(--tint); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 16px; line-height: 20px; outline: none; }
 
 /* Prominent capsule buttons */
