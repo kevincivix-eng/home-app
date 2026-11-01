@@ -20,7 +20,7 @@ export function HouseholdSettings() {
 
   const share = async () => {
     const url = inviteLink(household.invite_code)
-    const text = `הצטרפו ל"${household.name}" באפליקציית הבית שלנו`
+    const text = `הצטרפו ל"${household.name}" באפליקציית Home sweet Bait`
     try {
       if (navigator.share) await navigator.share({ title: 'הזמנה למשק בית', text, url })
       else { await navigator.clipboard.writeText(url); toast({ text: 'הקישור הועתק' }) }

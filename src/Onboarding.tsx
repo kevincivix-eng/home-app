@@ -53,7 +53,7 @@ export function AuthScreen() {
 
   const titles = { login: 'התחברות', signup: 'הרשמה', forgot: 'איפוס סיסמה' }
   return (
-    <Frame title="הבית שלנו" sub={pendingJoinCode() ? 'הוזמנתם להצטרף למשק בית – הירשמו או התחברו' : 'ניהול משק הבית, ביחד'} onSubmit={submit}>
+    <Frame title="Home sweet Bait" sub={pendingJoinCode() ? 'הוזמנתם להצטרף למשק בית – הירשמו או התחברו' : 'ניהול משק הבית, ביחד'} onSubmit={submit}>
       {mode !== 'forgot' && (
         <div className="seg">
           <button type="button" className={mode === 'login' ? 'on' : ''} onClick={() => setMode('login')}>התחברות</button>

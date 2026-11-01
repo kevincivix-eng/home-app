@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'הבית שלנו',
-        short_name: 'הבית',
+        name: 'Home sweet Bait',
+        short_name: 'Home sweet Bait',
         description: 'ניהול משק הבית של קוין ומעין',
         lang: 'he',
         dir: 'rtl',
