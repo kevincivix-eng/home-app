@@ -249,6 +249,7 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px; }
 .chip { padding: 7px 14px; border-radius: 999px; background: var(--fill); font-size: 15px; line-height: 20px; transition: background .2s; }
 .chip.on { background: var(--tint); color: #fff; font-weight: 600; }
+.chip-input { width: 140px; padding: 6px 14px; border: 1px solid var(--tint); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 16px; line-height: 20px; outline: none; }
 
 /* Prominent capsule buttons */
 .btn { display: block; width: 100%; min-height: 52px; padding: 15px; border-radius: 999px; background: var(--tint); color: #fff; font-weight: 600; font-size: 17px; line-height: 22px; text-align: center; transition: transform .15s, opacity .2s; }

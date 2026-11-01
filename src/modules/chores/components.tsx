@@ -4,7 +4,7 @@ import { Avatar } from '../../ui/Avatar'
 import { CheckIcon } from '../../ui/icons'
 import { Sheet } from '../../ui/Sheet'
 import { useToast } from '../../ui/Toast'
-import { CATEGORIES } from './defaults'
+import { categoriesOf } from './defaults'
 import { addPeriod, daysLate, deadlineOf, isOverdue } from './schedule'
 import { useChores } from './store'
 import { FREQ_LABEL, FREQUENCIES, type Completion, type Frequency, type Task } from './types'
@@ -182,18 +182,21 @@ export function TaskEditor({ task, onClose }: { task: Task | 'new' | null; onClo
 }
 
 function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void }) {
-  const { addTask, updateTask, deleteTask, today, me, profileById } = useChores()
+  const { tasks, addTask, updateTask, deleteTask, today, me, profileById } = useChores()
   const isNew = task === 'new'
   const [owner, setOwner] = useState<string | null>(isNew ? null : task.owner_id ?? null)
   const otherOwner = !isNew && task.owner_id && task.owner_id !== me?.id ? profileById(task.owner_id) : undefined
   const [title, setTitle] = useState(isNew ? '' : task.title)
   const [frequency, setFrequency] = useState<Frequency>(isNew ? 'weekly' : task.frequency)
   const [category, setCategory] = useState(isNew ? 'כללי' : task.category)
+  // null = not adding; a typed name counts even if the user taps save right away
+  const [newCategory, setNewCategory] = useState<string | null>(null)
+  const categories = categoriesOf([...tasks, { category }])
   const [date, setDate] = useState(isNew ? '' : task.due_date)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const save = async () => {
-    const t = { title: title.trim(), frequency, category, owner_id: owner }
+    const t = { title: title.trim(), frequency, category: newCategory?.trim() || category, owner_id: owner }
     if (isNew) await addTask({ ...t, due_date: date || undefined })
     else await updateTask(task.id, { ...t, due_date: date || task.due_date })
     onClose()
@@ -235,9 +238,27 @@ function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void
       <div className="section">
         <div className="section-header">קטגוריה</div>
         <div className="list chips">
-          {CATEGORIES.map(c => (
-            <button key={c} className={`chip${c === category ? ' on' : ''}`} onClick={() => setCategory(c)}>{c}</button>
+          {categories.map(c => (
+            <button key={c} className={`chip${c === category && newCategory === null ? ' on' : ''}`} onClick={() => { setCategory(c); setNewCategory(null) }}>{c}</button>
           ))}
+          {newCategory === null
+            ? <button className="chip" onClick={() => setNewCategory('')}>+ קטגוריה חדשה</button>
+            : (
+              <input
+                className="chip-input"
+                autoFocus
+                maxLength={20}
+                placeholder="למשל: גינה"
+                aria-label="שם הקטגוריה החדשה"
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key !== 'Enter') return
+                  if (newCategory.trim()) setCategory(newCategory.trim())
+                  setNewCategory(null)
+                }}
+              />
+            )}
         </div>
       </div>
 

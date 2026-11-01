@@ -1,11 +1,12 @@
 import type { Day } from '../../lib/dates'
 
-export type Frequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
-export const FREQUENCIES: Frequency[] = ['once', 'daily', 'weekly', 'monthly', 'quarterly']
+export type Frequency = 'once' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly'
+export const FREQUENCIES: Frequency[] = ['once', 'daily', 'weekly', 'biweekly', 'monthly', 'quarterly']
 export const FREQ_LABEL: Record<Frequency, string> = {
   once: 'חד פעמי',
   daily: 'יומי',
   weekly: 'שבועי',
+  biweekly: 'דו-שבועי',
   monthly: 'חודשי',
   quarterly: 'רבעוני',
 }

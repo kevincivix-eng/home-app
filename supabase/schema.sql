@@ -52,7 +52,7 @@ create table tasks (
   id uuid primary key default gen_random_uuid(),
   household_id uuid not null references households on delete cascade,
   title text not null,
-  frequency text not null constraint tasks_frequency_check check (frequency in ('once', 'daily', 'weekly', 'monthly', 'quarterly')),
+  frequency text not null constraint tasks_frequency_check check (frequency in ('once', 'daily', 'weekly', 'biweekly', 'monthly', 'quarterly')),
   owner_id uuid references profiles on delete cascade,  -- null = shared; otherwise a personal task
   category text not null default 'כללי',
   due_date date not null,

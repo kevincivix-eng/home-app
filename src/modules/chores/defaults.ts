@@ -2,6 +2,13 @@ import type { Frequency } from './types'
 
 export const CATEGORIES = ['כללי', 'מטבח', 'כביסה', 'ניקיון', 'רכב', 'פנצ׳ו', 'תינוק', 'מכשירים'] as const
 
+/** The built-in categories plus any the household added through its tasks */
+export function categoriesOf(tasks: { category: string }[]): string[] {
+  const builtIn: readonly string[] = CATEGORIES
+  const added = [...new Set(tasks.map(t => t.category))].filter(c => !builtIn.includes(c))
+  return [...builtIn, ...added.sort((a, b) => a.localeCompare(b, 'he'))]
+}
+
 const d = (title: string, frequency: Frequency, category: string) => ({ title, frequency, category, owner_id: null })
 
 export const DEFAULT_TASKS = [

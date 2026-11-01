@@ -7,13 +7,14 @@ export function addPeriod(d: Day, freq: Frequency): Day {
     case 'once':
     case 'daily': return plusDays(d, 1)
     case 'weekly': return plusDays(d, 7)
+    case 'biweekly': return plusDays(d, 14)
     case 'monthly': return plusMonths(d, 1)
     case 'quarterly': return plusMonths(d, 3)
   }
 }
 
 /** Approximate length in days, used for spreading tasks over a period */
-export const SPAN_DAYS: Record<Frequency, number> = { once: 1, daily: 1, weekly: 7, monthly: 30, quarterly: 90 }
+export const SPAN_DAYS: Record<Frequency, number> = { once: 1, daily: 1, weekly: 7, biweekly: 14, monthly: 30, quarterly: 90 }
 
 /** The task turns red on this day if still not done */
 export const deadlineOf = (t: Pick<Task, 'due_date' | 'frequency'>): Day => addPeriod(t.due_date, t.frequency)
@@ -50,8 +51,8 @@ export function completeOn(t: Pick<Task, 'due_date' | 'frequency'>, day: Day) {
  * all appear on the same day. Daily tasks all start today.
  */
 export function spreadInitialDates<T extends { frequency: Frequency }>(tasks: T[], start: Day): (T & { due_date: Day })[] {
-  const counters: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
-  const totals: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, monthly: 0, quarterly: 0 }
+  const counters: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, biweekly: 0, monthly: 0, quarterly: 0 }
+  const totals: Record<Frequency, number> = { once: 0, daily: 0, weekly: 0, biweekly: 0, monthly: 0, quarterly: 0 }
   tasks.forEach(t => totals[t.frequency]++)
   return tasks.map(t => {
     const i = counters[t.frequency]++

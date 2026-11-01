@@ -58,6 +58,12 @@ describe('one-time tasks', () => {
 })
 
 describe('spreading', () => {
+  it('biweekly task returns after 14 days and turns red after 14', () => {
+    expect(addPeriod('2026-10-25', 'biweekly')).toBe('2026-11-08')
+    expect(isOverdue(task('2026-10-25', 'biweekly'), '2026-11-07')).toBe(false)
+    expect(isOverdue(task('2026-10-25', 'biweekly'), '2026-11-08')).toBe(true)
+  })
+
   it('spreads each frequency over its period', () => {
     const tasks = [
       ...Array.from({ length: 7 }, () => ({ frequency: 'daily' as const })),
