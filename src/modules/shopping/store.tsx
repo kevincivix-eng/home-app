@@ -19,6 +19,8 @@ interface ShoppingStore extends ShoppingData {
   setActiveList(id: string): void
   /** Adds a product to the list – reuses it from the catalog if it already exists */
   addByName(listId: string, name: string): Promise<void>
+  /** Puts several products on the list at once; a note is kept only on newly created products or ones without a note */
+  addMany(listId: string, entries: { name: string; note?: string | null }[]): Promise<void>
   setNeeded(item: ShoppingItem, needed: boolean): Promise<void>
   toggleCart(item: ShoppingItem): Promise<void>
   updateItem(id: string, patch: Partial<ShoppingItem>): Promise<void>
@@ -92,6 +94,31 @@ export function ShoppingProvider({ children }: { children: ReactNode }) {
         created_at: new Date().toISOString(),
       }
       await mutate(d => ({ ...d, items: [...d.items, item] }), () => backend.addItem(item))
+    },
+
+    async addMany(listId, entries) {
+      const fresh: ShoppingItem[] = []
+      const patches: { id: string; patch: Partial<ShoppingItem> }[] = []
+      for (const e of entries) {
+        const name = e.name.trim()
+        if (!name || fresh.some(i => sameName(i.name, name))) continue
+        const existing = data.items.find(i => i.list_id === listId && sameName(i.name, name))
+        if (existing) {
+          if (!existing.needed) patches.push({ id: existing.id, patch: { needed: true, in_cart: false, ...(!existing.note && e.note ? { note: e.note } : {}) } })
+          continue
+        }
+        fresh.push({
+          id: uid(), list_id: listId, name, category: guessCategory(name, data.items),
+          needed: true, in_cart: false, quantity: null, note: e.note ?? null, image_path: null, times_bought: 0, last_bought_at: null,
+          created_at: new Date().toISOString(),
+        })
+      }
+      if (!fresh.length && !patches.length) return
+      const byId = new Map(patches.map(p => [p.id, p.patch]))
+      await mutate(
+        d => ({ ...d, items: [...d.items.map(i => (byId.has(i.id) ? { ...i, ...byId.get(i.id) } : i)), ...fresh] }),
+        async () => { await Promise.all(fresh.map(i => backend.addItem(i))); if (patches.length) await backend.updateItems(patches) },
+      )
     },
 
     setNeeded: (item, needed) => patchItems([{ id: item.id, patch: needed ? { needed: true, in_cart: false } : { needed: false, in_cart: false, quantity: null } }]),

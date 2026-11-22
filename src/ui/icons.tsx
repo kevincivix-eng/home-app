@@ -41,12 +41,22 @@ export const SettingsTab = ({ on }: { on?: boolean }) => (
   </svg>
 )
 
+export const MealsTab = ({ on }: { on?: boolean }) => (
+  <svg viewBox="0 0 28 28" {...t}>
+    <path d="M4 13h20a10 10 0 0 1-20 0z" fill={on ? 'currentColor' : 'none'} />
+    <path d="M10 4.5c-1 1.4 1 2.4 0 4M14 4.5c-1 1.4 1 2.4 0 4M18 4.5c-1 1.4 1 2.4 0 4M10.5 25.5h7" />
+  </svg>
+)
+
 export const CartTab = ({ on }: { on?: boolean }) => (
   <svg viewBox="0 0 28 28" {...t}>
     <path d="M3.5 4.5h3l2.6 13h12.4l2.5-9.5H8" fill={on ? 'currentColor' : 'none'} fillOpacity={on ? 0.35 : 0} />
     <path d="M3.5 4.5h3l2.6 13h12.4l2.5-9.5H8" />
     <circle cx="11" cy="22.5" r="1.8" fill="currentColor" /><circle cx="20" cy="22.5" r="1.8" fill="currentColor" />
   </svg>
+)
+export const ChatIcon = () => (
+  <svg viewBox="0 0 24 24" {...s}><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 3.5V18H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg>
 )
 export const SearchIcon = () => <svg viewBox="0 0 24 24" {...s} strokeWidth={2.2}><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L20 20" /></svg>
 export const ClearIcon = () => (

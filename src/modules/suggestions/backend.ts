@@ -1,5 +1,8 @@
 import { supabase } from '../../lib/supabase'
 
+/** app = improving the app itself; menu = a change to the meal plan */
+export type SuggestionKind = 'app' | 'menu'
+
 export type SuggestionStatus = 'open' | 'planned' | 'done' | 'declined'
 
 export const STATUS_LABEL: Record<SuggestionStatus, string> = {
@@ -11,6 +14,7 @@ export const STATUS_LABEL: Record<SuggestionStatus, string> = {
 
 export interface Suggestion {
   id: string
+  kind: SuggestionKind
   body: string
   created_by: string | null
   status: SuggestionStatus
@@ -35,10 +39,10 @@ const check = <T>({ data, error }: { data: T; error: unknown }) => {
   return data
 }
 
-function supabaseBackend(household_id: string): SuggestionsBackend {
+function supabaseBackend(household_id: string, kind: SuggestionKind): SuggestionsBackend {
   const sb = supabase!
   return {
-    fetchAll: async () => check(await sb.from('suggestions').select('*').eq('household_id', household_id).order('created_at', { ascending: false })) as Suggestion[],
+    fetchAll: async () => check(await sb.from('suggestions').select('*').eq('household_id', household_id).eq('kind', kind).order('created_at', { ascending: false })) as Suggestion[],
     subscribe(onChange) {
       const ch = sb.channel(`suggestions-${household_id}`)
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'suggestions', filter: `household_id=eq.${household_id}` }, onChange)
@@ -51,7 +55,7 @@ function supabaseBackend(household_id: string): SuggestionsBackend {
   }
 }
 
-function localBackend(): SuggestionsBackend {
+function localBackend(kind: SuggestionKind): SuggestionsBackend {
   const KEY = 'home-app:suggestions'
   const listeners = new Set<() => void>()
   const read = (): Suggestion[] => {
@@ -62,7 +66,7 @@ function localBackend(): SuggestionsBackend {
     listeners.forEach(l => l())
   }
   return {
-    fetchAll: async () => read(),
+    fetchAll: async () => read().filter(s => (s.kind ?? 'app') === kind),
     subscribe(onChange) {
       listeners.add(onChange)
       return () => { listeners.delete(onChange) }
@@ -73,4 +77,5 @@ function localBackend(): SuggestionsBackend {
   }
 }
 
-export const createSuggestionsBackend = (householdId: string) => (supabase ? supabaseBackend(householdId) : localBackend())
+export const createSuggestionsBackend = (householdId: string, kind: SuggestionKind) =>
+  (supabase ? supabaseBackend(householdId, kind) : localBackend(kind))

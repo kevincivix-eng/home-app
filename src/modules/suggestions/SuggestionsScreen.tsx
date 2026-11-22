@@ -6,15 +6,21 @@ import { Page } from '../../ui/Page'
 import { Sheet } from '../../ui/Sheet'
 import { useToast } from '../../ui/Toast'
 import { useChores } from '../chores/store'
-import { createSuggestionsBackend, STATUS_LABEL, type Suggestion } from './backend'
+import { createSuggestionsBackend, STATUS_LABEL, type Suggestion, type SuggestionKind } from './backend'
+
+const TEXT: Record<SuggestionKind, { title: string; subtitle: string; placeholder: string; empty: string }> = {
+  app: { title: 'הצעות לשיפור', subtitle: 'מה היה עוזר לכם באפליקציה?', placeholder: 'כתבו כאן מה לשפר או להוסיף', empty: 'עוד אין הצעות.' },
+  menu: { title: 'שינויים בתפריט', subtitle: 'מה להחליף, להוסיף או לשנות בתפריט?', placeholder: 'למשל: להחליף את הדן דן במשהו בלי בוטנים', empty: 'עוד אין בקשות לתפריט.' },
+}
 
 const isHandled = (s: Suggestion) => s.status === 'done' || s.status === 'declined'
 
-export function SuggestionsScreen({ onBack }: { onBack: () => void }) {
+export function SuggestionsScreen({ kind = 'app', onBack }: { kind?: SuggestionKind; onBack: () => void }) {
+  const text = TEXT[kind]
   const { household } = useHousehold()
   const { me, today } = useChores()
   const toast = useToast()
-  const backend = useMemo(() => createSuggestionsBackend(household!.id), [household?.id])
+  const backend = useMemo(() => createSuggestionsBackend(household!.id, kind), [household?.id, kind])
   const [list, setList] = useState<Suggestion[]>([])
   const [draft, setDraft] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
@@ -35,7 +41,7 @@ export function SuggestionsScreen({ onBack }: { onBack: () => void }) {
     if (!body) return
     setDraft('')
     await run(backend.add({
-      id: crypto.randomUUID(), body, created_by: me?.id ?? null, status: 'open',
+      id: crypto.randomUUID(), kind, body, created_by: me?.id ?? null, status: 'open',
       reply: null, reviewed_at: null, resolved_at: null, created_at: new Date().toISOString(),
     }))
     toast({ text: 'ההצעה נשמרה' })
@@ -47,14 +53,14 @@ export function SuggestionsScreen({ onBack }: { onBack: () => void }) {
   const row = (s: Suggestion) => <SuggestionRow key={s.id} s={s} today={today} onOpen={() => setSelected(s.id)} />
 
   return (
-    <Page title="הצעות לשיפור" subtitle="מה היה עוזר לכם באפליקציה?" onBack={onBack}>
+    <Page title={text.title} subtitle={text.subtitle} onBack={onBack}>
       <div className="section">
         <div className="list suggestion-compose">
           <textarea
             dir="auto"
             rows={3}
             maxLength={1000}
-            placeholder="כתבו כאן מה לשפר או להוסיף"
+            placeholder={text.placeholder}
             aria-label="הצעה חדשה"
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -68,7 +74,7 @@ export function SuggestionsScreen({ onBack }: { onBack: () => void }) {
           <div className="section-header big">פתוחות <span className="count">{open.length}</span></div>
           <div className="list">{open.map(row)}</div>
         </div>
-      ) : !handled.length && <div className="empty"><div className="big">💡</div>עוד אין הצעות.</div>}
+      ) : !handled.length && <div className="empty"><div className="big">💡</div>{text.empty}</div>}
 
       {handled.length > 0 && (
         <div className="section">
