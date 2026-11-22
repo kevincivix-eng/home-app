@@ -15,14 +15,14 @@ const TEXT: Record<SuggestionKind, { title: string; subtitle: string; placeholde
 
 const isHandled = (s: Suggestion) => s.status === 'done' || s.status === 'declined'
 
-export function SuggestionsScreen({ kind = 'app', onBack }: { kind?: SuggestionKind; onBack: () => void }) {
+export function SuggestionsScreen({ kind = 'app', initialDraft = '', onBack }: { kind?: SuggestionKind; initialDraft?: string; onBack: () => void }) {
   const text = TEXT[kind]
   const { household } = useHousehold()
   const { me, today } = useChores()
   const toast = useToast()
   const backend = useMemo(() => createSuggestionsBackend(household!.id, kind), [household?.id, kind])
   const [list, setList] = useState<Suggestion[]>([])
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(initialDraft)
   const [selected, setSelected] = useState<string | null>(null)
   const [showHandled, setShowHandled] = useState(false)
 
@@ -60,6 +60,7 @@ export function SuggestionsScreen({ kind = 'app', onBack }: { kind?: SuggestionK
             dir="auto"
             rows={3}
             maxLength={1000}
+            autoFocus={!!initialDraft}
             placeholder={text.placeholder}
             aria-label="הצעה חדשה"
             value={draft}

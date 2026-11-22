@@ -262,6 +262,34 @@ input[dir="ltr"]:placeholder-shown { direction: rtl; }
 .add-btn svg { width: 18px; height: 18px; }
 .add-btn.on { background: var(--tint); color: #fff; }
 .on-list .cell-title { color: var(--text-2); }
+.recipe-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.recipe-steps li { display: flex; gap: 14px; align-items: flex-start; background: var(--card); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 17px; line-height: 24px; }
+.recipe-num { flex: none; width: 28px; height: 28px; border-radius: 14px; display: grid; place-items: center; background: var(--tint); color: #fff; font-size: 15px; font-weight: 700; line-height: 1; }
+
+/* ── Cooking mode: one big step at a time ─────────────────────────────── */
+.cook { position: fixed; inset: 0; z-index: 70; background: var(--bg); display: flex; flex-direction: column; padding: calc(var(--safe-top) + 10px) 20px calc(var(--safe-bottom) + 16px); animation: fade .2s; }
+.cook-top { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.cook-dish { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cook-timer { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--fill); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cook-timer.done { background: var(--red); color: #fff; animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+.cook-progress { height: 4px; border-radius: 2px; background: var(--fill); margin: 14px 0 6px; overflow: hidden; }
+.cook-progress div { height: 100%; background: var(--tint); transition: width .3s; }
+.cook-body { flex: 1; overflow-y: auto; padding: 18px 0; display: flex; flex-direction: column; }
+.cook-label { font-size: 15px; font-weight: 600; color: var(--tint-text); margin-bottom: 14px; }
+.cook-step { font-size: 28px; line-height: 38px; font-weight: 600; letter-spacing: 0.2px; }
+.cook-timer-btn { margin-top: 28px; width: auto; align-self: flex-start; padding-inline: 24px; }
+.cook-ings { display: flex; flex-direction: column; gap: 2px; }
+.cook-ing { display: flex; align-items: center; gap: 14px; padding: 12px 4px; font-size: 20px; line-height: 26px; text-align: start; }
+.cook-ing .check { width: 28px; height: 28px; border-radius: 14px; }
+.cook-ing-name { flex: 1; }
+.cook-ing-amount { color: var(--text-2); font-size: 16px; }
+.cook-ing.have .cook-ing-name { text-decoration: line-through; color: var(--text-2); }
+.cook-nav { display: flex; gap: 12px; }
+.cook-nav .btn { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.cook-nav .btn:first-child { flex: 0 0 38%; }
+.cook-nav svg { width: 18px; height: 18px; }
+
 .chip-input { width: 140px; padding: 6px 14px; border: 1px solid var(--tint); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 16px; line-height: 20px; outline: none; }
 
 /* Prominent capsule buttons */

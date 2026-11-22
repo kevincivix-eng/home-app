@@ -18,7 +18,10 @@ interface MealsStore extends MealsData {
   weekTitle(week: number): string
   setCurrentWeek(week: number): Promise<void>
   renameWeek(week: number, title: string): Promise<void>
-  addDish(d: Pick<Dish, 'week' | 'slot' | 'title' | 'note'>): Promise<void>
+  /** Returns the new dish's id */
+  addDish(d: Omit<Dish, 'id' | 'sort' | 'created_at'>): Promise<string>
+  /** `replacement` takes `current`'s place on the menu; `current` goes to the dish bank */
+  swapDish(current: Dish, replacement: Dish): Promise<void>
   updateDish(id: string, patch: Partial<Dish>): Promise<void>
   deleteDish(id: string): Promise<void>
   addIngredient(i: Pick<Ingredient, 'week' | 'section' | 'name' | 'amount'>): Promise<void>
@@ -74,6 +77,15 @@ export function MealsProvider({ children }: { children: ReactNode }) {
     async addDish(x) {
       const dish: Dish = { ...x, id: uid(), sort: nextSort(data.dishes), created_at: new Date().toISOString() }
       await mutate(d => ({ ...d, dishes: [...d.dishes, dish] }), () => backend.addDishes([dish]))
+      return dish.id
+    },
+    async swapDish(current, replacement) {
+      const into = { week: current.week, slot: current.slot, sort: current.sort }
+      const out = { week: null, sort: replacement.sort }
+      await mutate(
+        d => ({ ...d, dishes: d.dishes.map(x => (x.id === replacement.id ? { ...x, ...into } : x.id === current.id ? { ...x, ...out } : x)) }),
+        async () => { await backend.updateDish(replacement.id, into); await backend.updateDish(current.id, out) },
+      )
     },
     updateDish: (id, patch) => mutate(d => ({ ...d, dishes: d.dishes.map(x => (x.id === id ? { ...x, ...patch } : x)) }), () => backend.updateDish(id, patch)),
     deleteDish: id => mutate(d => ({ ...d, dishes: d.dishes.filter(x => x.id !== id) }), () => backend.deleteDish(id)),

@@ -19,12 +19,22 @@ export interface MealPlan {
   week_titles: string[]
 }
 
+export interface RecipeIngredient {
+  name: string
+  amount: string | null
+}
+
 export interface Dish {
   id: string
-  week: number
+  /** null = in the dish bank, not on the menu */
+  week: number | null
   slot: Slot
   title: string
   note: string | null
+  cook_time: string | null
+  servings: string | null
+  ingredients: RecipeIngredient[]
+  steps: string[]
   sort: number
   created_at: string
 }

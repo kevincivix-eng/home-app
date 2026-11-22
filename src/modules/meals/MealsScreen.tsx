@@ -3,12 +3,11 @@ import { longDate, plusDays } from '../../lib/dates'
 import { useToday } from '../../lib/useToday'
 import { ArrowIcon, ChatIcon, CheckIcon, ChevIcon, PlusIcon } from '../../ui/icons'
 import { GlassButton, Page } from '../../ui/Page'
-import { useToast } from '../../ui/Toast'
-import { sameName } from '../shopping/categories'
-import { useShopping } from '../shopping/store'
 import { SuggestionsScreen } from '../suggestions/SuggestionsScreen'
 import { cycleWeek, dayRhythm } from './plan'
-import { DishSheet, IngredientSheet, WeekTitleSheet, type DishDraft, type IngredientDraft } from './sheets'
+import { RecipeScreen } from './RecipeScreen'
+import { DishSheet, IngredientSheet, PlaceSheet, SwapSheet, WeekTitleSheet, type DishDraft, type IngredientDraft } from './sheets'
+import { useShoppingTarget } from './shoppingTarget'
 import { useMeals } from './store'
 import { PANTRY_WEEK, SLOT_LABEL, SLOT_WHEN, SLOTS, WEEKS, type Dish, type Ingredient, type Slot } from './types'
 
@@ -16,37 +15,15 @@ type View = 'day' | 'week' | 'month'
 const VIEWS: { id: View; label: string }[] = [{ id: 'day', label: 'היום' }, { id: 'week', label: 'שבוע' }, { id: 'month', label: 'חודש' }]
 const VIEW_KEY = 'home-app:meals-view'
 
-/** Ingredients go to the shared "סופר" list (or the first shared list) */
-function useShoppingTarget() {
-  const shop = useShopping()
-  const toast = useToast()
-  const shared = shop.visibleLists.filter(l => !l.owner_id)
-  const list = shared.find(l => l.name === 'סופר') ?? shared[0] ?? shop.visibleLists[0]
-  const itemFor = (name: string) => (list ? shop.items.find(i => i.list_id === list.id && sameName(i.name, name)) : undefined)
-  const onList = (ing: Ingredient) => !!itemFor(ing.name)?.needed
-  return {
-    list,
-    onList,
-    async toggle(ing: Ingredient) {
-      if (!list) return
-      const item = itemFor(ing.name)
-      if (item?.needed) await shop.setNeeded(item, false)
-      else await shop.addMany(list.id, [{ name: ing.name, note: ing.amount }])
-    },
-    async addAll(ings: Ingredient[]) {
-      if (!list) return
-      const missing = ings.filter(i => !onList(i))
-      await shop.addMany(list.id, missing.map(i => ({ name: i.name, note: i.amount })))
-      toast({ text: missing.length ? `נוספו ${missing.length} מוצרים לרשימת ${list.name}` : `הכל כבר ברשימת ${list.name}` })
-    },
-  }
-}
-
 export function MealsScreen() {
   const m = useMeals()
   const [view, setView] = useState<View>(() => { try { return (sessionStorage.getItem(VIEW_KEY) as View) || 'day' } catch { return 'day' } })
   const [week, setWeek] = useState(m.currentWeek)
-  const [requests, setRequests] = useState(false)
+  /** false = closed; a string = open the menu requests, prefilled with it */
+  const [requests, setRequests] = useState<string | false>(false)
+  const [recipeId, setRecipeId] = useState<string | null>(null)
+  const [swapping, setSwapping] = useState<Dish | null>(null)
+  const [placing, setPlacing] = useState<Dish | null>(null)
   const [dish, setDish] = useState<DishDraft | null>(null)
   const [ingredient, setIngredient] = useState<IngredientDraft | null>(null)
   const [renaming, setRenaming] = useState<number | null>(null)
@@ -54,7 +31,31 @@ export function MealsScreen() {
   const go = (v: View) => { setView(v); try { sessionStorage.setItem(VIEW_KEY, v) } catch { /* ignore */ } }
   const openWeek = (n: number) => { setWeek(n); go('week') }
 
-  if (requests) return <SuggestionsScreen kind="menu" onBack={() => setRequests(false)} />
+  const openRecipe = (d: Dish) => setRecipeId(d.id)
+  const recipe = m.dishes.find(d => d.id === recipeId)
+  const sheets = (
+    <>
+      <DishSheet dish={dish} onClose={() => setDish(null)} onSaved={id => recipe && setRecipeId(id)} />
+      <SwapSheet
+        current={swapping}
+        onClose={() => setSwapping(null)}
+        onSwapped={d => setRecipeId(d.id)}
+        onNew={d => setDish({ week: d.week, slot: d.slot, replace: d })}
+        onAsk={d => { setRecipeId(null); setRequests(`להחליף את "${d.title}" (שבוע ${d.week}) במנה אחרת, `) }}
+      />
+      <PlaceSheet key={placing?.id} dish={placing} onClose={() => setPlacing(null)} />
+      <IngredientSheet ingredient={ingredient} onClose={() => setIngredient(null)} />
+      <WeekTitleSheet week={renaming} onClose={() => setRenaming(null)} />
+    </>
+  )
+
+  if (requests !== false) return <SuggestionsScreen kind="menu" initialDraft={requests} onBack={() => setRequests(false)} />
+  if (recipe) return (
+    <>
+      <RecipeScreen dish={recipe} onBack={() => setRecipeId(null)} onEdit={() => setDish(recipe)} onSwap={() => setSwapping(recipe)} onPlace={() => setPlacing(recipe)} />
+      {sheets}
+    </>
+  )
 
   const empty = !m.loading && !m.dishes.length && !m.ingredients.length
   const title = m.weekTitle(m.currentWeek)
@@ -62,7 +63,7 @@ export function MealsScreen() {
     <Page
       title="ארוחות"
       subtitle={`שבוע ${m.currentWeek} מתוך 4${title ? ` · ${title}` : ''}`}
-      actions={<GlassButton label="בקשה לשינוי בתפריט" onClick={() => setRequests(true)}><ChatIcon /></GlassButton>}
+      actions={<GlassButton label="בקשה לשינוי בתפריט" onClick={() => setRequests('')}><ChatIcon /></GlassButton>}
     >
       <div className="seg" style={{ marginBottom: 20 }}>
         {VIEWS.map(v => <button key={v.id} className={v.id === view ? 'on' : ''} onClick={() => go(v.id)}>{v.label}</button>)}
@@ -76,16 +77,14 @@ export function MealsScreen() {
           <p style={{ fontSize: 13 }}>אפשר לערוך כל מנה ורכיב, או לבקש שינויים דרך כפתור הבועה למעלה.</p>
         </div>
       ) : view === 'day' ? (
-        <DayView onOpenWeek={openWeek} onDish={setDish} />
+        <DayView onOpenWeek={openWeek} onDish={openRecipe} />
       ) : view === 'week' ? (
-        <WeekView week={week} setWeek={setWeek} onDish={setDish} onIngredient={setIngredient} onRename={setRenaming} />
+        <WeekView week={week} setWeek={setWeek} onDish={openRecipe} onNewDish={setDish} onIngredient={setIngredient} onRename={setRenaming} />
       ) : (
-        <MonthView onOpenWeek={openWeek} onIngredient={setIngredient} />
+        <MonthView onOpenWeek={openWeek} onDish={openRecipe} onNewDish={setDish} onIngredient={setIngredient} />
       )}
 
-      <DishSheet dish={dish} onClose={() => setDish(null)} />
-      <IngredientSheet ingredient={ingredient} onClose={() => setIngredient(null)} />
-      <WeekTitleSheet week={renaming} onClose={() => setRenaming(null)} />
+      {sheets}
     </Page>
   )
 }
@@ -101,6 +100,7 @@ function DishList({ dishes, onDish }: { dishes: Dish[]; onDish: (d: Dish) => voi
             <div className="meal-title">{d.title}</div>
             {d.note && <div className="meal-note">{d.note}</div>}
           </div>
+          <ChevIcon />
         </button>
       ))}
     </div>
@@ -176,15 +176,9 @@ function ShoppingSections({ week, onIngredient }: { week: number; onIngredient: 
   const target = useShoppingTarget()
   const ings = ingredients.filter(i => i.week === week)
   const sections = [...new Set(ings.map(i => i.section))]
-  const missing = ings.filter(i => !target.onList(i)).length
   return (
     <>
-      {ings.length > 0 && (
-        <button className="btn" style={{ marginBottom: 6 }} disabled={!target.list || !missing} onClick={() => target.addAll(ings)}>
-          {missing ? `הוספת ${missing} מוצרים לרשימת ${target.list?.name ?? 'הקניות'}` : `הכל ברשימת ${target.list?.name ?? 'הקניות'} ✓`}
-        </button>
-      )}
-      <div className="section-footer" style={{ margin: '0 4px 14px' }}>לחיצה על + מוסיפה מוצר לרשימה, ולחיצה נוספת מורידה אותו. לחיצה על השם פותחת עריכה.</div>
+      <div className="section-footer" style={{ margin: '-4px 4px 14px' }}>רק מה שתבחרו נכנס לרשימת {target.list?.name ?? 'הקניות'}: לחיצה על + מוסיפה, לחיצה נוספת מורידה. לחיצה על השם פותחת עריכה.</div>
       {sections.map(s => (
         <div className="section" key={s}>
           <div className="section-header">{s}</div>
@@ -196,10 +190,11 @@ function ShoppingSections({ week, onIngredient }: { week: number; onIngredient: 
   )
 }
 
-function WeekView({ week, setWeek, onDish, onIngredient, onRename }: {
+function WeekView({ week, setWeek, onDish, onNewDish, onIngredient, onRename }: {
   week: number
   setWeek: (n: number) => void
-  onDish: (d: DishDraft) => void
+  onDish: (d: Dish) => void
+  onNewDish: (d: DishDraft) => void
   onIngredient: (i: IngredientDraft) => void
   onRename: (n: number) => void
 }) {
@@ -223,7 +218,7 @@ function WeekView({ week, setWeek, onDish, onIngredient, onRename }: {
           <div className="section-header big">{SLOT_LABEL[slot]}</div>
           <div className="section-footer" style={{ margin: '-6px 4px 10px' }}>{SLOT_WHEN[slot]}</div>
           <DishList dishes={dishesOf(dishes, week, slot)} onDish={onDish} />
-          <button className="link-btn" style={{ padding: '8px 4px 0' }} onClick={() => onDish({ week, slot })}>+ מנה</button>
+          <button className="link-btn" style={{ padding: '8px 4px 0' }} onClick={() => onNewDish({ week, slot })}>+ מנה</button>
         </div>
       ))}
 
@@ -233,7 +228,12 @@ function WeekView({ week, setWeek, onDish, onIngredient, onRename }: {
   )
 }
 
-function MonthView({ onOpenWeek, onIngredient }: { onOpenWeek: (n: number) => void; onIngredient: (i: IngredientDraft) => void }) {
+function MonthView({ onOpenWeek, onDish, onNewDish, onIngredient }: {
+  onOpenWeek: (n: number) => void
+  onDish: (d: Dish) => void
+  onNewDish: (d: DishDraft) => void
+  onIngredient: (i: IngredientDraft) => void
+}) {
   const { dishes, weekTitle, currentWeek, setCurrentWeek } = useMeals()
   return (
     <>
@@ -259,6 +259,13 @@ function MonthView({ onOpenWeek, onIngredient }: { onOpenWeek: (n: number) => vo
           {WEEKS.map(w => <button key={w} className={w === currentWeek ? 'on' : ''} onClick={() => setCurrentWeek(w)}>שבוע {w}</button>)}
         </div>
         <div className="section-footer">השבוע מתחלף בכל יום שישי.</div>
+      </div>
+
+      <div className="section">
+        <div className="section-header big">מאגר מנות</div>
+        <div className="section-footer" style={{ margin: '-6px 4px 10px' }}>מנות חלופיות עם מתכון. אפשר להחליף אליהן כל מנה בתפריט, ומנה שהוחלפה חוזרת לכאן.</div>
+        <DishList dishes={dishes.filter(d => d.week === null)} onDish={onDish} />
+        <button className="link-btn" style={{ padding: '8px 4px 0' }} onClick={() => onNewDish({ week: null, slot: 'weekend' })}>+ מנה למאגר</button>
       </div>
 
       <div className="section-header big" style={{ marginTop: 8 }}>מזווה בסיס</div>
