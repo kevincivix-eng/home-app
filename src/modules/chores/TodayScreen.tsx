@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { longDate, plusDays } from '../../lib/dates'
 import { Avatar } from '../../ui/Avatar'
-import { ChevIcon, PlusIcon } from '../../ui/icons'
+import { ChevIcon, PlusIcon, SearchIcon } from '../../ui/icons'
 import { GlassButton, Page } from '../../ui/Page'
 import { DoneRow, TaskActions, TaskEditor, TaskRow } from './components'
 import { daysLate, isOpen, isOverdue } from './schedule'
+import { TaskSearch } from './TaskSearch'
 import { useChores } from './store'
 import { FREQ_LABEL, FREQUENCIES, type Profile, type Task } from './types'
 
@@ -14,6 +15,9 @@ export function TodayScreen() {
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
   const [showAllDone, setShowAllDone] = useState(false)
   const [showAllFuture, setShowAllFuture] = useState(false)
+  const [searching, setSearching] = useState(false)
+
+  if (searching) return <TaskSearch onBack={() => setSearching(false)} />
 
   // Main view: shared tasks + my personal ones. Others' personal tasks live in a collapsed section.
   const mine = (t: Task) => !t.owner_id || t.owner_id === me?.id
@@ -43,7 +47,10 @@ export function TodayScreen() {
     <Page
       title="היום"
       subtitle={<>{longDate(today)}{open.length > 0 && ` · ${open.length} פתוחות`}</>}
-      actions={<GlassButton label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></GlassButton>}
+      actions={<>
+        <GlassButton label="חיפוש משימות" onClick={() => setSearching(true)}><SearchIcon /></GlassButton>
+        <GlassButton label="משימה חדשה" onClick={() => setEditing('new')}><PlusIcon /></GlassButton>
+      </>}
     >
 
       {!loading && tasks.length === 0 && (

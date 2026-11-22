@@ -173,20 +173,21 @@ export function TaskActions({ task, onClose, onEdit }: { task: Task | null; onCl
 }
 
 /** Add (task === 'new') or edit a task */
-export function TaskEditor({ task, onClose }: { task: Task | 'new' | null; onClose: () => void }) {
+/** `initialTitle` prefills a new task's name */
+export function TaskEditor({ task, initialTitle = '', onClose }: { task: Task | 'new' | null; initialTitle?: string; onClose: () => void }) {
   return (
     <Sheet open={!!task} onClose={onClose}>
-      {task && <EditorBody key={task === 'new' ? 'new' : task.id} task={task} onClose={onClose} />}
+      {task && <EditorBody key={task === 'new' ? 'new' : task.id} task={task} initialTitle={initialTitle} onClose={onClose} />}
     </Sheet>
   )
 }
 
-function EditorBody({ task, onClose }: { task: Task | 'new'; onClose: () => void }) {
+function EditorBody({ task, initialTitle, onClose }: { task: Task | 'new'; initialTitle: string; onClose: () => void }) {
   const { tasks, addTask, updateTask, deleteTask, today, me, profileById } = useChores()
   const isNew = task === 'new'
   const [owner, setOwner] = useState<string | null>(isNew ? null : task.owner_id ?? null)
   const otherOwner = !isNew && task.owner_id && task.owner_id !== me?.id ? profileById(task.owner_id) : undefined
-  const [title, setTitle] = useState(isNew ? '' : task.title)
+  const [title, setTitle] = useState(isNew ? initialTitle : task.title)
   const [frequency, setFrequency] = useState<Frequency>(isNew ? 'weekly' : task.frequency)
   const [category, setCategory] = useState(isNew ? 'כללי' : task.category)
   // null = not adding; a typed name counts even if the user taps save right away
